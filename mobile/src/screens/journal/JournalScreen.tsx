@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { api } from '../../api/client';
 import { Field } from '../../components/Field';
-import { Muted, PrimaryButton, Screen, Title } from '../../components/ui';
+import { Muted, PrimaryButton, Screen } from '../../components/ui';
 import { space } from '../../theme';
 import { todayDate } from '../../types';
 
@@ -36,8 +36,7 @@ export function JournalScreen() {
   };
 
   return (
-    <Screen>
-      <Title>Journal</Title>
+    <Screen safe={false}>
       <Muted>Optional. The system already knows what you completed.</Muted>
       <ScrollView contentContainerStyle={styles.form}>
         <Field value={values.wentWell} onChangeText={setWentWell} placeholder="What went well?" multiline />

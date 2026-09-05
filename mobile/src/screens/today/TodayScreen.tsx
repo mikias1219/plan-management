@@ -1,22 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
-import { EmptyState, ErrorBanner, HeaderButton, Muted, ProgressBar, Screen, Title } from '../../components/ui';
-import { colors, radius, space } from '../../theme';
+import { ErrorBanner, Fab, Group, ProgressBar, Screen, ScreenHeader } from '../../components/ui';
+import { colors, space } from '../../theme';
 import type { TodayHabit, TodayPayload } from '../../types';
 import { todayDate } from '../../types';
-import { useSession } from '../../api/client';
 
 function formatLongDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: 'long',
     month: 'long',
     day: 'numeric',
-    year: 'numeric',
   });
 }
 
 export function TodayScreen({ navigation }: { navigation: { navigate: (name: string, params?: object) => void } }) {
-  const user = useSession((s) => s.user);
   const date = todayDate();
   const queryClient = useQueryClient();
   const today = useQuery({
@@ -42,16 +41,15 @@ export function TodayScreen({ navigation }: { navigation: { navigate: (name: str
   });
 
   const data = today.data;
+  const remaining = (data?.habits ?? []).filter((h) => !h.complete).length;
 
   return (
     <Screen>
-      <View style={styles.top}>
-        <View style={{ flex: 1 }}>
-          <Title>{data?.greeting ?? 'Hello'}{user?.name ? ` ${user.name.split(' ')[0]}` : ''}</Title>
-        </View>
-        <HeaderButton icon="search-outline" onPress={() => navigation.navigate('Search')} />
-        <HeaderButton icon="person-circle-outline" onPress={() => navigation.navigate('Settings')} />
-      </View>
+      <ScreenHeader
+        kicker={formatLongDate(date)}
+        title="Today"
+        subtitle={data ? `${data.progress.completedHabits} done · ${remaining} left` : 'Your daily loop'}
+      />
       {today.isError ? (
         <ErrorBanner
           message={today.error instanceof Error ? today.error.message : 'Could not load today'}
@@ -59,96 +57,111 @@ export function TodayScreen({ navigation }: { navigation: { navigate: (name: str
         />
       ) : null}
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Muted>{formatLongDate(date)}</Muted>
-        {data?.personalYear ? (
-          <Text style={styles.yearDay}>Day {data.personalYear.currentDay} of your year</Text>
-        ) : (
-          <Pressable onPress={() => navigation.navigate('YearSetup')}>
-            <Text style={styles.link}>Set your personal year</Text>
-          </Pressable>
-        )}
-
-        <View style={styles.block}>
-          <Text style={styles.section}>Today</Text>
+        <View style={styles.meter}>
+          <Text style={styles.meterLabel}>Completion</Text>
+          <Text style={styles.meterValue}>{data?.progress.percent ?? 0}%</Text>
           <ProgressBar value={data?.progress.percent ?? 0} />
-          <Muted>
-            {data ? `${data.progress.completedHabits} / ${data.progress.totalHabits} habits complete` : 'Loading your day…'}
-          </Muted>
         </View>
 
-        {data?.habits.length === 0 ? (
-          <EmptyState title="No habits due" body="Add a habit from Plan when you are ready." />
-        ) : (
-          data?.habits.map((habit) => (
-            <View key={habit.id} style={styles.habitRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.habitName}>{habit.name}</Text>
-                <Muted>
-                  {habit.unit === 'minutes'
-                    ? `${habit.current} / ${habit.target} min`
-                    : habit.complete
-                      ? 'Done'
-                      : 'Not yet'}
-                </Muted>
-              </View>
-              <Pressable
-                onPress={() => {
-                  if (habit.captureStyle === 'complete' && !habit.complete) {
-                    complete.mutate(habit);
-                    return;
-                  }
-                  navigation.navigate('Capture', { habitId: habit.id });
-                }}
-                style={styles.action}
-              >
-                <Text style={styles.actionLabel}>{habit.actionLabel}</Text>
-              </Pressable>
+        <Group label="Habits">
+          {!data?.habits.length ? (
+            <View style={styles.emptyPad}>
+              <Text style={styles.emptyTitle}>Nothing due</Text>
+              <Text style={styles.emptyBody}>Add habits from Plan.</Text>
             </View>
-          ))
-        )}
-
-        <View style={styles.block}>
-          <Text style={styles.section}>Today's priorities</Text>
-          {data?.priorities?.length ? (
-            data.priorities.map((item, index) => (
-              <Text key={item.id} style={styles.priority}>
-                {index + 1}. {item.title}
-              </Text>
-            ))
           ) : (
-            <Muted>No priorities yet. Add a high-priority task from Plan.</Muted>
+            data.habits.map((habit, index) => {
+              const pct = habit.target > 0 ? (habit.current / habit.target) * 100 : habit.complete ? 100 : 0;
+              const last = index === data.habits.length - 1;
+              return (
+                <Pressable
+                  key={habit.id}
+                  onPress={() => {
+                    if (habit.captureStyle === 'complete' && !habit.complete) {
+                      complete.mutate(habit);
+                      return;
+                    }
+                    navigation.navigate('Capture', { habitId: habit.id });
+                  }}
+                  style={[styles.habit, !last && styles.habitBorder]}
+                >
+                  <View style={[styles.check, habit.complete && styles.checkOn]}>
+                    <Ionicons name={habit.complete ? 'checkmark' : 'ellipse-outline'} size={18} color={habit.complete ? '#fff' : colors.muted} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.habitName}>{habit.name}</Text>
+                    <Text style={styles.habitMeta}>
+                      {habit.unit === 'minutes'
+                        ? `${habit.current} / ${habit.target} min`
+                        : habit.complete
+                          ? 'Complete'
+                          : habit.actionLabel}
+                    </Text>
+                    <View style={{ marginTop: 8 }}>
+                      <ProgressBar value={pct} color={habit.complete ? colors.success : colors.accent} />
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })
           )}
-        </View>
+        </Group>
 
-        <Pressable onPress={() => navigation.navigate('Journal')} style={styles.journal}>
-          <Text style={styles.section}>Daily reflection</Text>
-          <Muted>{data?.journal.exists ? 'Journal saved for today' : 'Optional — what went well?'}</Muted>
-        </Pressable>
+        <Group label="Priorities">
+          {!data?.priorities?.length ? (
+            <View style={styles.emptyPad}>
+              <Text style={styles.emptyBody}>No high-priority tasks. Add one from Plan.</Text>
+            </View>
+          ) : (
+            data.priorities.map((item, index) => (
+              <Pressable
+                key={item.id}
+                onPress={() => navigation.navigate('Tasks')}
+                style={[styles.priority, index < data.priorities.length - 1 && styles.habitBorder]}
+              >
+                <Text style={styles.num}>{index + 1}</Text>
+                <Text style={styles.priorityTitle}>{item.title}</Text>
+              </Pressable>
+            ))
+          )}
+        </Group>
       </ScrollView>
+      <Fab onPress={() => navigation.navigate('Capture')} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  top: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm },
-  content: { paddingBottom: 120, gap: space.md },
-  yearDay: { fontSize: 16, color: colors.text, marginTop: 4 },
-  link: { color: colors.accent, fontWeight: '600', marginTop: 6 },
-  block: { gap: 8, marginTop: space.sm },
-  section: { fontSize: 13, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: colors.muted },
-  habitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  content: { paddingBottom: 120, gap: 22, paddingTop: 8 },
+  meter: {
     backgroundColor: colors.surface,
-    borderRadius: radius,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 16,
     padding: space.md,
-    gap: space.md,
+    gap: 10,
   },
-  habitName: { fontSize: 17, fontWeight: '600', color: colors.text },
-  action: { paddingHorizontal: 12, paddingVertical: 8 },
-  actionLabel: { color: colors.accent, fontWeight: '600' },
-  priority: { fontSize: 16, color: colors.text, lineHeight: 24 },
-  journal: { paddingVertical: space.md },
+  meterLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: colors.muted },
+  meterValue: { fontSize: 32, fontWeight: '700', color: colors.ink, letterSpacing: -0.8 },
+  habit: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
+  habitBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.hairline },
+  check: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkOn: { backgroundColor: colors.success, borderColor: colors.success },
+  habitName: { fontSize: 16, fontWeight: '600', color: colors.ink },
+  habitMeta: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  emptyPad: { padding: 16 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: colors.ink },
+  emptyBody: { fontSize: 14, color: colors.muted, marginTop: 4 },
+  priority: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
+  num: { width: 24, fontSize: 16, fontWeight: '700', color: colors.accentDim },
+  priorityTitle: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.ink },
 });

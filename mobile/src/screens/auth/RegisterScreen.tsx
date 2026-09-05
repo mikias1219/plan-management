@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { api, useSession } from '../../api/client';
 import { Field } from '../../components/Field';
-import { ErrorBanner, GhostButton, PrimaryButton, Screen, Title } from '../../components/ui';
+import { ErrorBanner, GhostButton, Muted, PrimaryButton, Screen, Title } from '../../components/ui';
 import { space } from '../../theme';
 import type { AuthUser } from '../../types';
 
@@ -34,6 +34,7 @@ export function RegisterScreen({ navigation }: { navigation: { goBack: () => voi
     <Screen>
       <View style={styles.form}>
         <Title>Create your Life OS</Title>
+        <Muted>Habits, plans, money, and notes — each in its own place.</Muted>
         {error ? <ErrorBanner message={error} /> : null}
         <Field value={name} onChangeText={setName} placeholder="Name" />
         <Field value={email} onChangeText={setEmail} placeholder="Email" keyboardType="email-address" />

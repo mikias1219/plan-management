@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Pressable, View } from 'react-native';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
+import { DashboardScreen } from '../screens/home/DashboardScreen';
 import { TodayScreen } from '../screens/today/TodayScreen';
 import { PlanScreen } from '../screens/plan/PlanScreen';
 import { YearSetupScreen } from '../screens/plan/YearSetupScreen';
@@ -14,13 +14,15 @@ import { GoalDetailScreen, HabitDetailScreen } from '../screens/plan/DetailScree
 import { PlanDayScreen, PlanWeekScreen, PlanMonthScreen, PlanYearScreen } from '../screens/plan/PlanPeriodScreen';
 import { CreateGoalScreen, CreateTaskScreen, CreateAchievementScreen } from '../screens/plan/CreateScreens';
 import { CaptureScreen } from '../screens/capture/CaptureScreen';
-import { StatsScreen } from '../screens/stats/StatsScreen';
 import { WeeklyReviewScreen, MonthlyReviewScreen, YearlyReviewScreen } from '../screens/stats/ReviewScreen';
 import { KnowledgeHomeScreen, KnowledgeAreaScreen } from '../screens/knowledge/KnowledgeHomeScreen';
 import { KnowledgeEditorScreen } from '../screens/knowledge/KnowledgeEditorScreen';
 import { JournalScreen } from '../screens/journal/JournalScreen';
-import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { SearchScreen } from '../screens/search/SearchScreen';
+import { MoneyScreen } from '../screens/money/MoneyScreen';
+import { AddTransactionScreen } from '../screens/money/AddTransactionScreen';
+import { BudgetScreen } from '../screens/money/BudgetScreen';
+import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { useSession } from '../api/client';
 import { colors } from '../theme';
 
@@ -30,7 +32,14 @@ const Root = createNativeStackNavigator();
 
 const navTheme = {
   ...DefaultTheme,
-  colors: { ...DefaultTheme.colors, background: colors.bg, card: colors.bg, text: colors.text, border: colors.border, primary: colors.accent },
+  colors: {
+    ...DefaultTheme.colors,
+    background: colors.bg,
+    card: colors.surface,
+    text: colors.text,
+    border: colors.border,
+    primary: colors.accent,
+  },
 };
 
 function AuthStack() {
@@ -43,74 +52,53 @@ function AuthStack() {
   );
 }
 
-function Dummy() {
-  return <View />;
+function tabIcon(outline: keyof typeof Ionicons.glyphMap, filled: keyof typeof Ionicons.glyphMap) {
+  return ({ color, focused }: { color: string; focused: boolean }) => (
+    <Ionicons name={focused ? filled : outline} color={color} size={22} />
+  );
 }
 
 function MainTabs() {
-  const navigation = useNavigation<{ navigate: (name: string) => void }>();
   return (
     <Tabs.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.accent,
+        tabBarActiveTintColor: colors.accentDim,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: 64, paddingBottom: 8 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
       }}
     >
       <Tabs.Screen
+        name="HomeTab"
+        component={DashboardScreen}
+        options={{ title: 'Home', tabBarIcon: tabIcon('grid-outline', 'grid') }}
+      />
+      <Tabs.Screen
         name="TodayTab"
         component={TodayScreen}
-        options={{
-          title: 'Today',
-          tabBarIcon: ({ color, size }) => <Ionicons name="sunny-outline" color={color} size={size} />,
-        }}
+        options={{ title: 'Today', tabBarIcon: tabIcon('sunny-outline', 'sunny') }}
       />
       <Tabs.Screen
         name="PlanTab"
         component={PlanScreen}
-        options={{
-          title: 'Plan',
-          tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" color={color} size={size} />,
-        }}
+        options={{ title: 'Plan', tabBarIcon: tabIcon('calendar-outline', 'calendar') }}
       />
       <Tabs.Screen
-        name="PlusTab"
-        component={Dummy}
-        options={{
-          title: '',
-          tabBarIcon: () => (
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 26,
-                backgroundColor: colors.accent,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 12,
-              }}
-            >
-              <Ionicons name="add" color="#fff" size={28} />
-            </View>
-          ),
-          tabBarButton: ({ children }) => (
-            <Pressable
-              onPress={() => navigation.navigate('Capture')}
-              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-            >
-              {children}
-            </Pressable>
-          ),
-        }}
+        name="MoneyTab"
+        component={MoneyScreen}
+        options={{ title: 'Money', tabBarIcon: tabIcon('wallet-outline', 'wallet') }}
       />
       <Tabs.Screen
-        name="StatsTab"
-        component={StatsScreen}
-        options={{
-          title: 'Stats',
-          tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" color={color} size={size} />,
-        }}
+        name="ProfileTab"
+        component={ProfileScreen}
+        options={{ title: 'Profile', tabBarIcon: tabIcon('person-outline', 'person') }}
       />
     </Tabs.Navigator>
   );
@@ -118,9 +106,19 @@ function MainTabs() {
 
 function AppStack() {
   return (
-    <Root.Navigator screenOptions={{ headerShadowVisible: false, headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text }}>
+    <Root.Navigator
+      screenOptions={{
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: colors.bg },
+        headerTintColor: colors.ink,
+        headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+        contentStyle: { backgroundColor: colors.bg },
+      }}
+    >
       <Root.Screen name="Tabs" component={MainTabs} options={{ headerShown: false }} />
       <Root.Screen name="Capture" component={CaptureScreen as never} options={{ title: 'Quick add', presentation: 'modal' }} />
+      <Root.Screen name="AddTransaction" component={AddTransactionScreen as never} options={{ title: 'Add money' }} />
+      <Root.Screen name="Budget" component={BudgetScreen} options={{ title: 'Budget' }} />
       <Root.Screen name="PlanDay" component={PlanDayScreen} options={{ title: 'Day' }} />
       <Root.Screen name="PlanWeek" component={PlanWeekScreen} options={{ title: 'Week' }} />
       <Root.Screen name="PlanMonth" component={PlanMonthScreen} options={{ title: 'Month' }} />
@@ -133,7 +131,7 @@ function AppStack() {
       <Root.Screen name="HabitDetail" component={HabitDetailScreen as never} options={{ title: 'Habit' }} />
       <Root.Screen name="Tasks" component={TasksScreen} options={{ title: 'Tasks' }} />
       <Root.Screen name="CreateTask" component={CreateTaskScreen} options={{ title: 'New task' }} />
-      <Root.Screen name="Knowledge" component={KnowledgeHomeScreen} options={{ title: 'Knowledge' }} />
+      <Root.Screen name="Knowledge" component={KnowledgeHomeScreen} options={{ title: 'Notes' }} />
       <Root.Screen name="KnowledgeArea" component={KnowledgeAreaScreen as never} options={{ title: 'Topic' }} />
       <Root.Screen name="KnowledgeEditor" component={KnowledgeEditorScreen as never} options={{ title: 'Editor' }} />
       <Root.Screen name="Journal" component={JournalScreen} options={{ title: 'Journal' }} />
@@ -142,7 +140,6 @@ function AppStack() {
       <Root.Screen name="WeeklyReview" component={WeeklyReviewScreen} options={{ title: 'Weekly review' }} />
       <Root.Screen name="MonthlyReview" component={MonthlyReviewScreen} options={{ title: 'Monthly review' }} />
       <Root.Screen name="YearlyReview" component={YearlyReviewScreen} options={{ title: 'Year review' }} />
-      <Root.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       <Root.Screen name="Search" component={SearchScreen} options={{ title: 'Search' }} />
     </Root.Navigator>
   );

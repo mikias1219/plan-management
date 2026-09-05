@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { api } from '../../api/client';
-import { Muted, ProgressBar, Screen, Title } from '../../components/ui';
+import { Group, ProgressBar, Row, Screen } from '../../components/ui';
 import { space } from '../../theme';
 
 export function GoalDetailScreen({ route }: { route: { params: { id: string } } }) {
@@ -14,15 +14,15 @@ export function GoalDetailScreen({ route }: { route: { params: { id: string } } 
   });
   const data = goal.data;
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={{ gap: space.md }}>
-        <Title>{data?.title ?? 'Goal'}</Title>
-        <Muted>{data ? `${data.period} · ${data.status.replace('_', ' ')}` : 'Loading…'}</Muted>
-        <ProgressBar value={data?.progress ?? 0} />
-        <Text>{data?.description}</Text>
-        <Muted>
-          {data ? `${data.currentValue} / ${data.target}` : ''}
-        </Muted>
+    <Screen safe={false}>
+      <ScrollView contentContainerStyle={styles.list}>
+        <Group>
+          <Row title="Period" value={data?.period} />
+          <Row title="Status" value={data?.status?.replace(/_/g, ' ')} />
+          <Row title="Progress" value={data ? `${data.progress}%` : '—'} />
+          <Row title="Current" value={data ? `${data.currentValue} / ${data.target}` : '—'} last />
+        </Group>
+        {typeof data?.progress === 'number' ? <ProgressBar value={data.progress} /> : null}
       </ScrollView>
     </Screen>
   );
@@ -39,16 +39,27 @@ export function HabitDetailScreen({ route }: { route: { params: { id: string } }
     queryFn: () => api<Array<{ id: string; date: string; title: string; durationMinutes: number }>>(`/activities?habitId=${route.params.id}`),
   });
   return (
-    <Screen>
-      <Title>{habit.data?.name ?? 'Habit'}</Title>
-      <Muted>
-        {habit.data ? `${habit.data.frequency} · ${habit.data.target} ${habit.data.unit}` : ''}
-      </Muted>
-      <ScrollView style={{ marginTop: space.md }}>
-        {history.data?.map((item) => (
-          <Muted key={item.id}>{`${item.date} · ${item.title} · ${item.durationMinutes} min`}</Muted>
-        ))}
+    <Screen safe={false}>
+      <ScrollView contentContainerStyle={styles.list}>
+        <Group>
+          <Row title="Frequency" value={habit.data?.frequency} />
+          <Row title="Target" value={habit.data ? `${habit.data.target} ${habit.data.unit}` : undefined} last />
+        </Group>
+        <Group label="History">
+          {(history.data ?? []).map((item, index) => (
+            <Row
+              key={item.id}
+              title={item.title}
+              subtitle={`${item.date} · ${item.durationMinutes} min`}
+              last={index === (history.data?.length ?? 1) - 1}
+            />
+          ))}
+        </Group>
       </ScrollView>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  list: { gap: 22, paddingVertical: space.md, paddingBottom: 40 },
+});

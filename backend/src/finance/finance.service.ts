@@ -78,14 +78,14 @@ export class FinanceService {
   }
 
   async upsertBudget(userId: string, dto: UpsertBudgetDto) {
-    const updated = await this.budgets
-      .findOneAndUpdate(
-        { userId: ownedBy(userId), month: dto.month },
-        { $set: { amount: dto.amount, userId: oid(userId), month: dto.month } },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
-      )
-      .exec();
-    return serialize(updated);
+    const existing = await this.budgets.findOne({ userId: ownedBy(userId), month: dto.month }).exec();
+    if (existing) {
+      existing.amount = dto.amount;
+      await existing.save();
+      return serialize(existing);
+    }
+    const created = await this.budgets.create({ userId: oid(userId), month: dto.month, amount: dto.amount });
+    return serialize(created);
   }
 
   async summary(userId: string, month = currentMonth()) {

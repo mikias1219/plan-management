@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { api } from '../../api/client';
-import { EmptyState, Muted, Screen, Title } from '../../components/ui';
-import { colors, radius, space } from '../../theme';
+import { EmptyState, Group, Row, Screen } from '../../components/ui';
+import { space } from '../../theme';
 
 export function PlanPeriodScreen({
   view,
@@ -25,43 +25,80 @@ export function PlanPeriodScreen({
       }>(`/plan?view=${view}`),
   });
   const data = query.data;
-  const heading = view[0].toUpperCase() + view.slice(1);
+  const empty = !data?.habits?.length && !data?.activities?.length && !data?.tasks?.length && !data?.goals?.length;
 
   return (
-    <Screen>
-      <Title>{heading}</Title>
-      {data?.from ? <Muted>{`${data.from} → ${data.to}`}</Muted> : null}
-      {data?.personalYear ? (
-        <Muted>{`Day ${data.personalYear.currentDay} of ${data.personalYear.totalDays} · ${data.personalYear.percentComplete}%`}</Muted>
-      ) : null}
+    <Screen safe={false}>
       <ScrollView contentContainerStyle={styles.list}>
-        {data?.habits?.map((habit) => (
-          <View key={habit.id} style={styles.row}>
-            <Text style={styles.name}>{habit.name}</Text>
-            <Muted>{habit.complete ? 'Done' : `${habit.current} / ${habit.target}`}</Muted>
-          </View>
-        ))}
-        {data?.activities?.map((item) => (
-          <View key={item.id} style={styles.row}>
-            <Text style={styles.name}>{item.title}</Text>
-            <Muted>{`${item.date} · ${item.durationMinutes} min`}</Muted>
-          </View>
-        ))}
-        {data?.tasks?.map((item) => (
-          <View key={item.id} style={styles.row}>
-            <Text style={styles.name}>{item.title}</Text>
-            <Muted>{item.status.replace('_', ' ')}</Muted>
-          </View>
-        ))}
-        {data?.goals?.map((item) => (
-          <View key={item.id} style={styles.row}>
-            <Text style={styles.name}>{item.title}</Text>
-            <Muted>{`${item.progress}%`}</Muted>
-          </View>
-        ))}
-        {!data?.habits?.length && !data?.activities?.length && !data?.tasks?.length ? (
-          <EmptyState title={`Nothing in this ${view} yet`} body="Record from Today or Quick add." />
+        {data?.personalYear ? (
+          <Group label="Year">
+            <Row
+              icon="flag-outline"
+              title={`Day ${data.personalYear.currentDay} of ${data.personalYear.totalDays}`}
+              value={`${data.personalYear.percentComplete}%`}
+              last
+            />
+          </Group>
         ) : null}
+
+        {data?.habits?.length ? (
+          <Group label="Habits">
+            {data.habits.map((habit, index) => (
+              <Row
+                key={habit.id}
+                icon={habit.complete ? 'checkmark-circle-outline' : 'ellipse-outline'}
+                tone={habit.complete ? 'success' : 'neutral'}
+                title={habit.name}
+                subtitle={habit.complete ? 'Done' : `${habit.current} / ${habit.target}`}
+                last={index === data.habits!.length - 1}
+              />
+            ))}
+          </Group>
+        ) : null}
+
+        {data?.goals?.length ? (
+          <Group label="Goals">
+            {data.goals.map((item, index) => (
+              <Row
+                key={item.id}
+                icon="ribbon-outline"
+                title={item.title}
+                value={`${item.progress}%`}
+                last={index === data.goals!.length - 1}
+              />
+            ))}
+          </Group>
+        ) : null}
+
+        {data?.tasks?.length ? (
+          <Group label="Tasks">
+            {data.tasks.map((item, index) => (
+              <Row
+                key={item.id}
+                icon="checkbox-outline"
+                title={item.title}
+                subtitle={item.status.replace(/_/g, ' ')}
+                last={index === data.tasks!.length - 1}
+              />
+            ))}
+          </Group>
+        ) : null}
+
+        {data?.activities?.length ? (
+          <Group label="Logged">
+            {data.activities.map((item, index) => (
+              <Row
+                key={item.id}
+                icon="time-outline"
+                title={item.title}
+                subtitle={`${item.date} · ${item.durationMinutes} min`}
+                last={index === data.activities!.length - 1}
+              />
+            ))}
+          </Group>
+        ) : null}
+
+        {empty ? <EmptyState title={`Nothing in this ${view} yet`} body="Record from Today or Quick add." /> : null}
       </ScrollView>
     </Screen>
   );
@@ -81,13 +118,5 @@ export function PlanYearScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: { gap: 10, paddingVertical: space.md, paddingBottom: 40 },
-  row: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius,
-    padding: space.md,
-  },
-  name: { fontSize: 16, fontWeight: '600', color: colors.text },
+  list: { gap: 22, paddingVertical: space.md, paddingBottom: 40 },
 });

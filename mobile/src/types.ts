@@ -38,4 +38,30 @@ export interface TodayPayload {
   journal: { exists: boolean; id?: string };
 }
 
+export interface FinanceSummary {
+  month: string;
+  from: string;
+  to: string;
+  income: number;
+  expense: number;
+  net: number;
+  budget: number;
+  remaining: number | null;
+  percentUsed: number;
+  onTrack: boolean | null;
+  byCategory: Array<{ category: string; amount: number; percent: number }>;
+  recent: FinanceTransaction[];
+}
+
+export interface FinanceTransaction {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  category: string;
+  note: string;
+  date: string;
+  currency: string;
+}
+
 export const todayDate = () => new Date().toISOString().slice(0, 10);
+export const currentMonth = () => new Date().toISOString().slice(0, 7);

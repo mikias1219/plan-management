@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { api } from '../../api/client';
-import { EmptyState, Muted, Screen, Title } from '../../components/ui';
-import { colors, radius, space } from '../../theme';
+import { EmptyState, Group, Row, Screen } from '../../components/ui';
+import { space } from '../../theme';
 
 export function KnowledgeHomeScreen({
   navigation,
@@ -20,23 +20,26 @@ export function KnowledgeHomeScreen({
   const countMap = new Map((counts.data ?? []).map((row) => [String(row._id), row.count]));
 
   return (
-    <Screen>
-      <Title>Knowledge</Title>
-      <Muted>Durable topic notes — not one document per activity.</Muted>
+    <Screen safe={false}>
       <ScrollView contentContainerStyle={styles.list}>
-        {areas.data?.map((area) => (
-          <Pressable
-            key={area.id}
-            onPress={() => navigation.navigate('KnowledgeArea', { lifeAreaId: area.id, name: area.name })}
-            style={styles.row}
-          >
-            <Text style={styles.name}>{area.name}</Text>
-            <Muted>{countMap.get(area.id) ?? 0} documents</Muted>
-          </Pressable>
-        ))}
-        <Pressable onPress={() => navigation.navigate('KnowledgeEditor', {})} style={styles.row}>
-          <Text style={styles.name}>New note</Text>
-        </Pressable>
+        <Group label="Topics">
+          {(areas.data ?? []).map((area) => (
+            <Row
+              key={area.id}
+              icon="folder-outline"
+              title={area.name}
+              value={countMap.get(area.id) ?? 0}
+              onPress={() => navigation.navigate('KnowledgeArea', { lifeAreaId: area.id, name: area.name })}
+            />
+          ))}
+          <Row
+            icon="add-outline"
+            title="New note"
+            subtitle="One living document per topic"
+            last
+            onPress={() => navigation.navigate('KnowledgeEditor', {})}
+          />
+        </Group>
       </ScrollView>
     </Screen>
   );
@@ -68,53 +71,48 @@ export function KnowledgeAreaScreen({
       api<Array<{ id: string; title: string; syncStatus: string }>>(`/documents?lifeAreaId=${route.params.lifeAreaId}`),
   });
 
+  const items = [
+    ...(docs.data ?? []).map((doc) => ({
+      id: doc.id,
+      title: doc.title,
+      subtitle: `Google Doc · ${doc.syncStatus}`,
+      onPress: () => navigation.navigate('KnowledgeEditor', { documentId: doc.id }),
+    })),
+    ...(notes.data ?? []).map((note) => ({
+      id: note.id,
+      title: note.title,
+      subtitle: note.topic || 'Note',
+      onPress: () => navigation.navigate('KnowledgeEditor', { knowledgeId: note.id, lifeAreaId: route.params.lifeAreaId }),
+    })),
+  ];
+
   return (
-    <Screen>
-      <Title>{route.params.name}</Title>
+    <Screen safe={false}>
       <ScrollView contentContainerStyle={styles.list}>
-        <Pressable
-          onPress={() => navigation.navigate('KnowledgeEditor', { lifeAreaId: route.params.lifeAreaId })}
-          style={styles.row}
-        >
-          <Text style={styles.name}>New note</Text>
-          <Muted>Keep topic docs, not one note per activity.</Muted>
-        </Pressable>
-        {!notes.data?.length && !docs.data?.length ? (
-          <EmptyState title="No notes yet" body="Capture learning from Skill or create a topic document." />
-        ) : null}
-        {docs.data?.map((doc) => (
-          <Pressable
-            key={doc.id}
-            onPress={() => navigation.navigate('KnowledgeEditor', { documentId: doc.id })}
-            style={styles.row}
-          >
-            <Text style={styles.name}>{doc.title}</Text>
-            <Muted>Google Doc · {doc.syncStatus}</Muted>
-          </Pressable>
-        ))}
-        {notes.data?.map((note) => (
-          <Pressable
-            key={note.id}
-            onPress={() => navigation.navigate('KnowledgeEditor', { knowledgeId: note.id, lifeAreaId: route.params.lifeAreaId })}
-            style={styles.row}
-          >
-            <Text style={styles.name}>{note.title}</Text>
-            <Muted>{note.topic || 'Note'}</Muted>
-          </Pressable>
-        ))}
+        <Group>
+          <Row
+            icon="add-outline"
+            title="New note"
+            last={!items.length}
+            onPress={() => navigation.navigate('KnowledgeEditor', { lifeAreaId: route.params.lifeAreaId })}
+          />
+          {items.map((item, index) => (
+            <Row
+              key={item.id}
+              icon="document-text-outline"
+              title={item.title}
+              subtitle={item.subtitle}
+              last={index === items.length - 1}
+              onPress={item.onPress}
+            />
+          ))}
+        </Group>
+        {!items.length ? <EmptyState title="No notes yet" body="Capture learning from Skill or create a topic document." /> : null}
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { gap: 10, paddingVertical: space.md, paddingBottom: 40 },
-  row: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius,
-    padding: space.md,
-  },
-  name: { fontSize: 16, fontWeight: '600', color: colors.text },
+  list: { gap: 16, paddingVertical: space.md, paddingBottom: 40 },
 });

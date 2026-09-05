@@ -14,7 +14,7 @@ export function Field({
   placeholder: string;
   secureTextEntry?: boolean;
   multiline?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'numeric';
+  keyboardType?: 'default' | 'email-address' | 'numeric' | 'decimal-pad';
 }) {
   return (
     <TextInput

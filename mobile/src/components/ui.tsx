@@ -3,8 +3,37 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radius, space } from '../theme';
 
-export function Screen({ children }: { children: React.ReactNode }) {
-  return <SafeAreaView style={styles.screen}>{children}</SafeAreaView>;
+export function Screen({ children, safe = true }: { children: React.ReactNode; safe?: boolean }) {
+  return (
+    <SafeAreaView style={[styles.screen, !safe && { paddingTop: 12 }]} edges={safe ? ['top'] : []}>
+      {children}
+    </SafeAreaView>
+  );
+}
+
+export function ScreenHeader({
+  kicker,
+  title,
+  subtitle,
+  right,
+}: {
+  kicker?: string;
+  title: string;
+  subtitle?: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <View style={styles.header}>
+      <View style={{ flex: 1 }}>
+        {kicker ? <Text style={styles.kicker}>{kicker}</Text> : null}
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </View>
+      {right}
+    </View>
+  );
 }
 
 export function Title({ children }: { children: React.ReactNode }) {
@@ -13,6 +42,123 @@ export function Title({ children }: { children: React.ReactNode }) {
 
 export function Muted({ children }: { children: React.ReactNode }) {
   return <Text style={styles.muted}>{children}</Text>;
+}
+
+export function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.section}>{children}</Text>;
+}
+
+export function Group({ label, children }: { label?: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.groupWrap}>
+      {label ? <Text style={styles.section}>{label}</Text> : null}
+      <View style={styles.group}>{children}</View>
+    </View>
+  );
+}
+
+export function Row({
+  icon,
+  title,
+  subtitle,
+  value,
+  onPress,
+  last,
+  destructive,
+  tone = 'accent',
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle?: string;
+  value?: string | number;
+  onPress?: () => void;
+  last?: boolean;
+  destructive?: boolean;
+  tone?: 'accent' | 'success' | 'danger' | 'neutral';
+}) {
+  const well = {
+    accent: { bg: colors.accentSoft, fg: colors.accentDim },
+    success: { bg: '#ECFDF5', fg: colors.success },
+    danger: { bg: '#FEF2F2', fg: colors.error },
+    neutral: { bg: colors.hairline, fg: colors.muted },
+  }[tone];
+
+  const body = (
+    <View style={[styles.row, !last && styles.rowBorder]}>
+      {icon ? (
+        <View style={[styles.well, { backgroundColor: well.bg }]}>
+          <Ionicons name={icon} size={18} color={well.fg} />
+        </View>
+      ) : null}
+      <View style={styles.rowText}>
+        <Text style={[styles.rowTitle, destructive && { color: colors.error }]} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={styles.rowSub} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      {value !== undefined && value !== '' ? <Text style={styles.rowValue}>{value}</Text> : null}
+      {onPress ? <Ionicons name="chevron-forward" size={18} color={colors.muted} /> : null}
+    </View>
+  );
+
+  if (!onPress) {
+    return body;
+  }
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => pressed && { backgroundColor: colors.overlay }}>
+      {body}
+    </Pressable>
+  );
+}
+
+export function Card({
+  children,
+  onPress,
+  tone = 'cream',
+  style,
+}: {
+  children: React.ReactNode;
+  onPress?: () => void;
+  tone?: 'cream' | 'ink' | 'forest' | 'copper';
+  style?: object;
+}) {
+  const palette = {
+    cream: { bg: colors.surface, border: colors.border },
+    ink: { bg: colors.ink, border: colors.ink },
+    forest: { bg: colors.accentDim, border: colors.accentDim },
+    copper: { bg: colors.error, border: colors.error },
+  }[tone];
+  const inner = (
+    <View style={[styles.card, { backgroundColor: palette.bg, borderColor: palette.border }, style]}>{children}</View>
+  );
+  if (!onPress) {
+    return inner;
+  }
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.92 }}>
+      {inner}
+    </Pressable>
+  );
+}
+
+export function Chip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={[styles.chip, selected && styles.chipOn]}>
+      <Text style={[styles.chipLabel, selected && styles.chipLabelOn]}>{label}</Text>
+    </Pressable>
+  );
 }
 
 export function PrimaryButton({
@@ -61,10 +207,18 @@ export function ErrorBanner({ message, onRetry }: { message: string; onRetry?: (
   );
 }
 
-export function ProgressBar({ value }: { value: number }) {
+export function ProgressBar({
+  value,
+  color = colors.accent,
+  track = colors.hairline,
+}: {
+  value: number;
+  color?: string;
+  track?: string;
+}) {
   return (
-    <View style={styles.track}>
-      <View style={[styles.fill, { width: `${Math.min(100, Math.max(0, value))}%` }]} />
+    <View style={[styles.track, { backgroundColor: track }]}>
+      <View style={[styles.fill, { width: `${Math.min(100, Math.max(0, value))}%`, backgroundColor: color }]} />
     </View>
   );
 }
@@ -72,37 +226,133 @@ export function ProgressBar({ value }: { value: number }) {
 export function HeaderButton({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} hitSlop={12} style={styles.iconBtn}>
-      <Ionicons name={icon} size={22} color={colors.text} />
+      <Ionicons name={icon} size={22} color={colors.ink} />
+    </Pressable>
+  );
+}
+
+export function Fab({
+  icon = 'add',
+  onPress,
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={styles.fab}>
+      <Ionicons name={icon} size={26} color="#fff" />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: space.lg, paddingTop: space.lg },
-  title: { fontSize: 28, fontWeight: '600', color: colors.text, letterSpacing: -0.4 },
+  screen: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: 20, paddingTop: 8 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8, gap: 12 },
+  kicker: { color: colors.muted, fontSize: 12, fontWeight: '600', letterSpacing: 0.2, marginBottom: 4 },
+  title: { fontSize: 28, fontWeight: '700', color: colors.ink, letterSpacing: -0.6 },
+  subtitle: { color: colors.muted, fontSize: 15, marginTop: 4, lineHeight: 21 },
   muted: { color: colors.muted, fontSize: 15, lineHeight: 22 },
-  primary: {
-    backgroundColor: colors.accent,
+  section: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: colors.muted,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  groupWrap: { gap: 0 },
+  group: {
+    backgroundColor: colors.surface,
     borderRadius: radius,
-    paddingVertical: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    gap: 12,
+    minHeight: 56,
+  },
+  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.hairline },
+  well: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowText: { flex: 1, minWidth: 0 },
+  rowTitle: { fontSize: 16, fontWeight: '600', color: colors.ink },
+  rowSub: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  rowValue: { fontSize: 15, fontWeight: '600', color: colors.muted, marginRight: 2 },
+  card: {
+    borderWidth: 1,
+    borderRadius: radius,
+    padding: space.md,
+    gap: 8,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  chipLabel: { color: colors.ink, fontWeight: '600', fontSize: 14 },
+  chipLabelOn: { color: '#fff' },
+  primary: {
+    backgroundColor: colors.accentDim,
+    borderRadius: 14,
+    paddingVertical: 15,
     alignItems: 'center',
   },
-  primaryLabel: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  disabled: { opacity: 0.5 },
+  primaryLabel: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  disabled: { opacity: 0.45 },
   ghost: { paddingVertical: 12, alignItems: 'center' },
-  ghostLabel: { color: colors.accent, fontSize: 16, fontWeight: '500' },
-  empty: { paddingVertical: 32, gap: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
+  ghostLabel: { color: colors.accentDim, fontSize: 16, fontWeight: '600' },
+  empty: { paddingVertical: 28, paddingHorizontal: 12, gap: 8 },
+  emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.ink },
   error: {
-    backgroundColor: '#FBECEC',
+    backgroundColor: '#FEF2F2',
     borderRadius: radius,
     padding: space.md,
     marginBottom: space.md,
     gap: 8,
   },
   errorText: { color: colors.error, fontSize: 14 },
-  retry: { color: colors.accent, fontWeight: '600' },
-  track: { height: 8, backgroundColor: colors.border, borderRadius: 99, overflow: 'hidden' },
-  fill: { height: 8, backgroundColor: colors.accent },
-  iconBtn: { padding: 8 },
+  retry: { color: colors.accentDim, fontWeight: '700' },
+  track: { height: 6, borderRadius: 99, overflow: 'hidden' },
+  fill: { height: 6, borderRadius: 99 },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.accentDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: colors.ink,
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
 });

@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { api, ApiError } from '../../api/client';
 import { Field } from '../../components/Field';
-import { ErrorBanner, Muted, PrimaryButton, Screen, Title } from '../../components/ui';
+import { Chip, ErrorBanner, Muted, PrimaryButton, Screen } from '../../components/ui';
 import { enqueue } from '../../offline/outbox';
-import { colors, radius, space } from '../../theme';
+import { space } from '../../theme';
 import { todayDate } from '../../types';
 
 interface Habit {
@@ -17,7 +17,7 @@ interface Habit {
   unit: string;
 }
 
-const ACTIONS = ['Prayer', 'Bible', 'Exercise', 'English', 'Skill', 'Work', 'Task', 'Journal', 'Knowledge'] as const;
+const ACTIONS = ['Prayer', 'Bible', 'Exercise', 'English', 'Skill', 'Work', 'Task', 'Expense', 'Income', 'Journal', 'Knowledge'] as const;
 
 export function CaptureScreen({
   navigation,
@@ -113,15 +113,16 @@ export function CaptureScreen({
   });
 
   return (
-    <Screen>
-      <Title>Quick add</Title>
+    <Screen safe={false}>
       {error ? <ErrorBanner message={error} /> : null}
       {offlineNote ? <ErrorBanner message={offlineNote} /> : null}
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.grid}>
           {ACTIONS.map((item) => (
-            <Pressable
+            <Chip
               key={item}
+              label={item}
+              selected={action === item}
               onPress={() => {
                 setAction(item);
                 if (item === 'Journal') {
@@ -130,11 +131,14 @@ export function CaptureScreen({
                 if (item === 'Knowledge') {
                   navigation.navigate('Knowledge');
                 }
+                if (item === 'Expense') {
+                  navigation.navigate('AddTransaction', { type: 'expense' });
+                }
+                if (item === 'Income') {
+                  navigation.navigate('AddTransaction', { type: 'income' });
+                }
               }}
-              style={[styles.chip, action === item && styles.chipOn]}
-            >
-              <Text style={[styles.chipLabel, action === item && styles.chipLabelOn]}>{item}</Text>
-            </Pressable>
+            />
           ))}
         </View>
 
@@ -185,15 +189,4 @@ export function CaptureScreen({
 const styles = StyleSheet.create({
   content: { gap: space.md, paddingVertical: space.md, paddingBottom: 40 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    borderRadius: radius,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  chipOn: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
-  chipLabel: { color: colors.text, fontWeight: '500' },
-  chipLabelOn: { color: colors.accent },
 });

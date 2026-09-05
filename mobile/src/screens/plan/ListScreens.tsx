@@ -1,15 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { api } from '../../api/client';
-import { EmptyState, Screen, Title } from '../../components/ui';
-import { colors, radius, space } from '../../theme';
+import { EmptyState, Fab, Group, Row, Screen } from '../../components/ui';
+import { space } from '../../theme';
 
 export function ListScreen({
-  title,
   path,
   onPress,
 }: {
-  title: string;
   path: string;
   onPress?: (item: { id: string }) => void;
 }) {
@@ -28,16 +26,23 @@ export function ListScreen({
   });
 
   return (
-    <Screen>
-      <Title>{title}</Title>
+    <Screen safe={false}>
       <ScrollView contentContainerStyle={styles.list}>
-        {!query.data?.length ? <EmptyState title={`No ${title.toLowerCase()} yet`} body="Keep it simple. Add only what you will use." /> : null}
-        {query.data?.map((item) => (
-          <Pressable key={item.id} onPress={() => onPress?.(item)} style={styles.row}>
-            <Text style={styles.name}>{item.title ?? item.name}</Text>
-            {item.status ? <Text style={styles.meta}>{item.status.replace('_', ' ')}</Text> : null}
-          </Pressable>
-        ))}
+        {!query.data?.length ? <EmptyState title="Nothing here yet" body="Add only what you will use." /> : null}
+        {query.data?.length ? (
+          <Group>
+            {query.data.map((item, index) => (
+              <Row
+                key={item.id}
+                title={item.title ?? item.name ?? 'Untitled'}
+                subtitle={item.status ? item.status.replace(/_/g, ' ') : undefined}
+                value={typeof item.progress === 'number' ? `${item.progress}%` : undefined}
+                onPress={onPress ? () => onPress(item) : undefined}
+                last={index === query.data.length - 1}
+              />
+            ))}
+          </Group>
+        ) : null}
       </ScrollView>
     </Screen>
   );
@@ -46,25 +51,21 @@ export function ListScreen({
 export function GoalsScreen({ navigation }: { navigation: { navigate: (name: string, params?: object) => void } }) {
   return (
     <>
-      <ListScreen title="Goals" path="/goals" onPress={(item) => navigation.navigate('GoalDetail', { id: item.id })} />
-      <Pressable onPress={() => navigation.navigate('CreateGoal')} style={styles.fab}>
-        <Text style={styles.fabLabel}>New goal</Text>
-      </Pressable>
+      <ListScreen path="/goals" onPress={(item) => navigation.navigate('GoalDetail', { id: item.id })} />
+      <Fab onPress={() => navigation.navigate('CreateGoal')} />
     </>
   );
 }
 
 export function HabitsScreen({ navigation }: { navigation: { navigate: (name: string, params: object) => void } }) {
-  return <ListScreen title="Habits" path="/habits" onPress={(item) => navigation.navigate('HabitDetail', { id: item.id })} />;
+  return <ListScreen path="/habits" onPress={(item) => navigation.navigate('HabitDetail', { id: item.id })} />;
 }
 
 export function TasksScreen({ navigation }: { navigation: { navigate: (name: string) => void } }) {
   return (
     <>
-      <ListScreen title="Tasks" path="/tasks" />
-      <Pressable onPress={() => navigation.navigate('CreateTask')} style={styles.fab}>
-        <Text style={styles.fabLabel}>New task</Text>
-      </Pressable>
+      <ListScreen path="/tasks" />
+      <Fab onPress={() => navigation.navigate('CreateTask')} />
     </>
   );
 }
@@ -72,33 +73,12 @@ export function TasksScreen({ navigation }: { navigation: { navigate: (name: str
 export function AchievementsScreen({ navigation }: { navigation: { navigate: (name: string) => void } }) {
   return (
     <>
-      <ListScreen title="Achievements" path="/achievements" />
-      <Pressable onPress={() => navigation.navigate('CreateAchievement')} style={styles.fab}>
-        <Text style={styles.fabLabel}>New achievement</Text>
-      </Pressable>
+      <ListScreen path="/achievements" />
+      <Fab onPress={() => navigation.navigate('CreateAchievement')} />
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { paddingVertical: space.md, gap: 10, paddingBottom: 40 },
-  row: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius,
-    padding: space.md,
-  },
-  name: { fontSize: 16, fontWeight: '600', color: colors.text },
-  meta: { color: colors.muted, marginTop: 4, textTransform: 'capitalize' },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 24,
-    backgroundColor: colors.accent,
-    borderRadius: radius,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  fabLabel: { color: '#fff', fontWeight: '600' },
+  list: { paddingVertical: space.md, gap: 16, paddingBottom: 88 },
 });

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { api, useSession } from '../../api/client';
 import { Field } from '../../components/Field';
-import { ErrorBanner, GhostButton, PrimaryButton, Screen, Title } from '../../components/ui';
-import { space } from '../../theme';
+import { ErrorBanner, GhostButton, PrimaryButton, Screen } from '../../components/ui';
+import { colors, space } from '../../theme';
 import type { AuthUser } from '../../types';
 
 export function LoginScreen({ navigation }: { navigation: { navigate: (name: string) => void } }) {
@@ -33,7 +33,9 @@ export function LoginScreen({ navigation }: { navigation: { navigate: (name: str
     <Screen>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.wrap}>
         <View style={styles.header}>
-          <Title>Welcome back</Title>
+          <Text style={styles.mark}>LIFE OS</Text>
+          <Text style={styles.title}>Welcome back</Text>
+          <Text style={styles.sub}>Home for progress. Each tab does one job.</Text>
         </View>
         {error ? <ErrorBanner message={error} /> : null}
         <View style={styles.form}>
@@ -50,6 +52,14 @@ export function LoginScreen({ navigation }: { navigation: { navigate: (name: str
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, justifyContent: 'center' },
-  header: { marginBottom: space.lg },
+  header: { marginBottom: space.xl, gap: 8 },
+  mark: {
+    color: colors.accent,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 3,
+  },
+  title: { fontSize: 34, fontWeight: '700', color: colors.ink, letterSpacing: -0.8 },
+  sub: { color: colors.muted, fontSize: 16, lineHeight: 22 },
   form: { gap: space.md },
 });

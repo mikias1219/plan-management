@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api/client';
 import { Field } from '../../components/Field';
-import { ErrorBanner, Muted, PrimaryButton, Screen, Title } from '../../components/ui';
+import { ErrorBanner, Muted, PrimaryButton, Screen } from '../../components/ui';
 import { colors, radius, space } from '../../theme';
 
 function wrap(content: string, before: string, after = before) {
@@ -131,8 +131,7 @@ export function KnowledgeEditorScreen({
   }
 
   return (
-    <Screen>
-      <Title>Editor</Title>
+    <Screen safe={false}>
       {sync ? <Muted>Sync: {sync}</Muted> : null}
       {error ? <ErrorBanner message={error} onRetry={route.params?.documentId ? retry : undefined} /> : null}
       <View style={styles.toolbar}>

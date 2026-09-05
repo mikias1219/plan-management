@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { api } from '../../api/client';
 import { Field } from '../../components/Field';
-import { Muted, PrimaryButton, Screen, Title } from '../../components/ui';
+import { Group, PrimaryButton, Row, Screen } from '../../components/ui';
 import { space } from '../../theme';
 
 export function ReviewScreen({ type }: { type: 'weekly' | 'monthly' | 'yearly' }) {
@@ -28,15 +28,18 @@ export function ReviewScreen({ type }: { type: 'weekly' | 'monthly' | 'yearly' }
   const summary = review.data?.autoSummary;
 
   return (
-    <Screen>
-      <Title>{type === 'weekly' ? 'Weekly review' : type === 'monthly' ? 'Monthly review' : 'Year review'}</Title>
-      <Muted>
-        {review.data ? `${review.data.periodStart} → ${review.data.periodEnd}` : 'Loading summary…'}
-      </Muted>
+    <Screen safe={false}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text>{`Completed ${summary?.habitsCompleted ?? 0} · missed ${summary?.habitsMissed ?? 0}`}</Text>
-        <Text>{`Tasks completed ${summary?.tasksCompleted ?? 0} · knowledge ${summary?.knowledgeCreated ?? 0}`}</Text>
-        <Muted>{`Strongest: ${summary?.strongestArea ?? '—'} · Weakest: ${summary?.weakestArea ?? '—'}`}</Muted>
+        <Group label="This period">
+          <Row title="Wins" value={summary?.habitsCompleted ?? 0} tone="success" />
+          <Row title="Missed" value={summary?.habitsMissed ?? 0} tone="danger" />
+          <Row title="Tasks completed" value={summary?.tasksCompleted ?? 0} />
+          <Row title="Notes created" value={summary?.knowledgeCreated ?? 0} last />
+        </Group>
+        <Group label="Focus">
+          <Row icon="trending-up-outline" title="Strongest" subtitle={summary?.strongestArea ?? '—'} tone="success" />
+          <Row icon="alert-circle-outline" title="Weakest" subtitle={summary?.weakestArea ?? '—'} tone="danger" last />
+        </Group>
         <Field value={wentWell} onChangeText={setWentWell} placeholder="What went well?" multiline />
         <Field value={shouldImprove} onChangeText={setImprove} placeholder="What should improve next period?" multiline />
         <PrimaryButton

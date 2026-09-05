@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { api } from '../../api/client';
 import { Field } from '../../components/Field';
-import { PrimaryButton, Screen, Title } from '../../components/ui';
+import { PrimaryButton, Screen } from '../../components/ui';
 import { space } from '../../theme';
 
 export function CreateGoalScreen({ navigation }: { navigation: { goBack: () => void } }) {
@@ -15,8 +15,7 @@ export function CreateGoalScreen({ navigation }: { navigation: { goBack: () => v
   const [period, setPeriod] = useState('monthly');
 
   return (
-    <Screen>
-      <Title>New goal</Title>
+    <Screen safe={false}>
       <View style={styles.form}>
         <Field value={title} onChangeText={setTitle} placeholder="Become strong in DevOps" />
         <Field value={period} onChangeText={setPeriod} placeholder="annual | quarterly | monthly | weekly" />
@@ -49,8 +48,7 @@ export function CreateTaskScreen({ navigation }: { navigation: { goBack: () => v
   });
 
   return (
-    <Screen>
-      <Title>New task</Title>
+    <Screen safe={false}>
       <View style={styles.form}>
         <Field value={title} onChangeText={setTitle} placeholder="Build Docker Compose practice project" />
         <PrimaryButton
@@ -81,8 +79,7 @@ export function CreateAchievementScreen({ navigation }: { navigation: { goBack: 
   });
 
   return (
-    <Screen>
-      <Title>New achievement</Title>
+    <Screen safe={false}>
       <View style={styles.form}>
         <Field value={title} onChangeText={setTitle} placeholder="Completed Docker fundamentals" />
         <Field value={description} onChangeText={setDescription} placeholder="Why it matters" />

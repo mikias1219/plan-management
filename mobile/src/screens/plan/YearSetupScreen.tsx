@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { api } from '../../api/client';
 import { Field } from '../../components/Field';
-import { ErrorBanner, Muted, PrimaryButton, Screen, Title } from '../../components/ui';
+import { ErrorBanner, Muted, PrimaryButton, Screen } from '../../components/ui';
 
 export function YearSetupScreen({ navigation }: { navigation: { goBack: () => void } }) {
   const active = useQuery({
@@ -24,8 +24,7 @@ export function YearSetupScreen({ navigation }: { navigation: { goBack: () => vo
   }
 
   return (
-    <Screen>
-      <Title>Personal year</Title>
+    <Screen safe={false}>
       {active.data ? (
         <Muted>
           Day {active.data.currentDay} of {active.data.totalDays} · {active.data.percentComplete}% complete

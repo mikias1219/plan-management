@@ -1,47 +1,68 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Screen, Title, Muted } from '../../components/ui';
-import { colors, radius, space } from '../../theme';
-
-const LINKS = [
-  { name: 'PlanDay', label: 'Day', body: 'Today’s habits, tasks, and activities' },
-  { name: 'PlanWeek', label: 'Week', body: 'This week at a glance' },
-  { name: 'PlanMonth', label: 'Month', body: 'Monthly activity and tasks' },
-  { name: 'PlanYear', label: 'Year', body: 'Personal year, goals, and progress' },
-  { name: 'YearSetup', label: 'Personal year dates', body: 'Start date, day count, remaining days' },
-  { name: 'Goals', label: 'Goals', body: 'Annual → weekly' },
-  { name: 'Habits', label: 'Habits', body: 'Recurring behaviors' },
-  { name: 'Tasks', label: 'Tasks', body: 'Specific actions' },
-  { name: 'Knowledge', label: 'Knowledge', body: 'What you learned' },
-  { name: 'Journal', label: 'Journal', body: 'Daily reflection' },
-  { name: 'Achievements', label: 'Achievements', body: 'Meaningful milestones' },
-];
+import { useQuery } from '@tanstack/react-query';
+import { ScrollView, StyleSheet } from 'react-native';
+import { api } from '../../api/client';
+import { Group, Row, Screen, ScreenHeader } from '../../components/ui';
+import type { TodayPayload } from '../../types';
+import { todayDate } from '../../types';
 
 export function PlanScreen({ navigation }: { navigation: { navigate: (name: string) => void } }) {
+  const today = useQuery({
+    queryKey: ['today', todayDate()],
+    queryFn: () => api<TodayPayload>(`/today?date=${todayDate()}`),
+  });
+  const year = today.data?.personalYear;
+  const goals = useQuery({
+    queryKey: ['goals'],
+    queryFn: () => api<Array<{ id: string; progress?: number }>>('/goals'),
+  });
+  const goalPct = goals.data?.length
+    ? Math.round(goals.data.reduce((sum, g) => sum + (g.progress ?? 0), 0) / goals.data.length)
+    : 0;
+
   return (
     <Screen>
-      <Title>Plan</Title>
-      <Muted>Year, goals, habits, and tasks — without extra tabs.</Muted>
-      <View style={styles.list}>
-        {LINKS.map((link) => (
-          <Pressable key={link.name} onPress={() => navigation.navigate(link.name)} style={styles.row}>
-            <Text style={styles.label}>{link.label}</Text>
-            <Text style={styles.body}>{link.body}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <ScreenHeader title="Plan" subtitle="One thing at a time" />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Group label="Time">
+          <Row
+            icon="flag-outline"
+            title="Personal year"
+            subtitle={year ? `${year.daysRemaining} days left` : 'Set start and end dates'}
+            value={year ? `${year.percentComplete}%` : undefined}
+            onPress={() => navigation.navigate(year ? 'PlanYear' : 'YearSetup')}
+          />
+          <Row icon="today-outline" title="This week" subtitle="Habits and tasks" onPress={() => navigation.navigate('PlanWeek')} />
+          <Row
+            icon="calendar-outline"
+            title="This month"
+            subtitle="A wider look"
+            last
+            onPress={() => navigation.navigate('PlanMonth')}
+          />
+        </Group>
+
+        <Group label="Building">
+          <Row
+            icon="ribbon-outline"
+            title="Goals"
+            subtitle="Annual down to weekly"
+            value={`${goalPct}%`}
+            onPress={() => navigation.navigate('Goals')}
+          />
+          <Row icon="repeat-outline" title="Habits" subtitle="Recurring behaviors" onPress={() => navigation.navigate('Habits')} />
+          <Row
+            icon="checkbox-outline"
+            title="Tasks"
+            subtitle="Specific actions"
+            last
+            onPress={() => navigation.navigate('Tasks')}
+          />
+        </Group>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { marginTop: space.lg, gap: 10 },
-  row: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius,
-    padding: space.md,
-  },
-  label: { fontSize: 17, fontWeight: '600', color: colors.text },
-  body: { color: colors.muted, marginTop: 4 },
+  content: { paddingTop: 8, paddingBottom: 40, gap: 22 },
 });
