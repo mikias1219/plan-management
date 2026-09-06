@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { endOfMonth, endOfWeek, startOfMonth, startOfWeek, toDateString } from '../common/utils/dates.js';
 import { ownedBy } from '../common/utils/oid.js';
 import { serializeMany } from '../common/utils/serialize.js';
-import { Activity, ActivityDocument } from '../activities/schemas/activity.schema.js';
+import { DayItem, DayItemDocument } from '../day-items/schemas/day-item.schema.js';
 import { Goal, GoalDocument } from '../goals/schemas/goal.schema.js';
 import { PersonalYearsService } from '../personal-years/personal-years.service.js';
 import { Task, TaskDocument } from '../tasks/schemas/task.schema.js';
@@ -15,7 +15,7 @@ export class PlanService {
   constructor(
     private readonly today: TodayService,
     private readonly years: PersonalYearsService,
-    @InjectModel(Activity.name) private readonly activities: Model<ActivityDocument>,
+    @InjectModel(DayItem.name) private readonly dayItems: Model<DayItemDocument>,
     @InjectModel(Task.name) private readonly tasks: Model<TaskDocument>,
     @InjectModel(Goal.name) private readonly goals: Model<GoalDocument>,
   ) {}
@@ -34,13 +34,15 @@ export class PlanService {
           : await this.yearRange(userId, date);
 
     const owner = ownedBy(userId);
-    const [activities, tasks, goals] = await Promise.all([
-      this.activities.find({ userId: owner, date: { $gte: range.from, $lte: range.to } }).sort({ date: 1 }).exec(),
+    const [items, tasks, goals] = await Promise.all([
+      this.dayItems.find({ userId: owner, date: { $gte: range.from, $lte: range.to } }).sort({ date: 1, plannedTime: 1 }).exec(),
       this.tasks.find({ userId: owner }).sort({ dueDate: 1 }).exec(),
       this.goals.find({ userId: owner }).sort({ createdAt: -1 }).exec(),
     ]);
 
     const periodTasks = tasks.filter((task) => !task.dueDate || (task.dueDate >= range.from && task.dueDate <= range.to));
+    const done = items.filter((item) => item.status === 'done').length;
+    const total = items.length;
 
     return {
       view,
@@ -48,7 +50,12 @@ export class PlanService {
       from: range.from,
       to: range.to,
       personalYear: await this.years.getActive(userId, date),
-      activities: serializeMany(activities),
+      progress: {
+        percent: total === 0 ? 0 : Math.round((done / total) * 100),
+        completed: done,
+        total,
+      },
+      items: serializeMany(items),
       tasks: serializeMany(periodTasks),
       goals: serializeMany(goals),
     };

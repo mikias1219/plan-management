@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { api } from '../../api/client';
+import { DateField } from '../../components/DateTimeFields';
 import { Field } from '../../components/Field';
 import { Chip, ErrorBanner, PrimaryButton, Screen, SectionLabel } from '../../components/ui';
 import { space } from '../../theme';
@@ -15,7 +16,7 @@ export function AddTransactionScreen({
   route,
 }: {
   navigation: { goBack: () => void };
-  route: { params?: { type?: 'income' | 'expense' } };
+  route: { params?: { type?: 'income' | 'expense'; date?: string } };
 }) {
   const queryClient = useQueryClient();
   const [type, setType] = useState<'income' | 'expense'>(route.params?.type ?? 'expense');
@@ -23,6 +24,7 @@ export function AddTransactionScreen({
   const [category, setCategory] = useState(cats[0]);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
+  const [date, setDate] = useState(route.params?.date ?? todayDate());
   const [error, setError] = useState<string | null>(null);
 
   const save = useMutation({
@@ -34,7 +36,7 @@ export function AddTransactionScreen({
           category,
           amount: Number(amount),
           note,
-          date: todayDate(),
+          date,
         }),
       }),
     onSuccess: async () => {
@@ -48,6 +50,7 @@ export function AddTransactionScreen({
     <Screen safe={false}>
       {error ? <ErrorBanner message={error} /> : null}
       <ScrollView contentContainerStyle={styles.content}>
+        <DateField label="Date" value={date} onChange={setDate} />
         <View style={styles.row}>
           <Chip
             label="Expense"

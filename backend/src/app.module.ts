@@ -7,6 +7,7 @@ import { ActivitiesModule } from './activities/activities.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
+import { DayItemsModule } from './day-items/day-items.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
 import { FinanceModule } from './finance/finance.module.js';
 import { GoalsModule } from './goals/goals.module.js';
@@ -41,6 +42,7 @@ import { HealthController } from './health.controller.js';
     PersonalYearsModule,
     HabitsModule,
     ActivitiesModule,
+    DayItemsModule,
     GoalsModule,
     TasksModule,
     KnowledgeModule,

@@ -56,6 +56,78 @@ export class AnalyticsService {
       }))
       .sort((a, b) => a.minutes - b.minutes);
 
+    const openTasks = tasks.filter((task) => task.status !== 'completed' && task.status !== 'cancelled');
+    const overdueTasks = openTasks.filter((task) => task.dueDate && task.dueDate < date);
+    const taskCompletion =
+      tasks.length === 0
+        ? 0
+        : Math.round((tasks.filter((task) => task.status === 'completed').length / tasks.length) * 100);
+    const goalProgress =
+      goals.length === 0 ? 0 : Math.round(goals.reduce((sum, goal) => sum + goal.progress, 0) / goals.length);
+    const monthSummary = month.autoSummary as {
+      habitsCompleted?: number;
+      habitsMissed?: number;
+      knowledgeCreated?: number;
+    };
+    const wins = monthSummary.habitsCompleted ?? 0;
+    const misses = monthSummary.habitsMissed ?? 0;
+    const doingWell = neglected.slice(-1)[0]?.name ?? null;
+    const neglecting = neglected[0]?.name ?? null;
+
+    const insights: Array<{
+      id: string;
+      tone: 'info' | 'success' | 'warning' | 'danger';
+      title: string;
+      body: string;
+      action?: string;
+    }> = [];
+
+    if (overdueTasks.length > 0) {
+      insights.push({
+        id: 'overdue-tasks',
+        tone: 'danger',
+        title: `${overdueTasks.length} overdue task${overdueTasks.length === 1 ? '' : 's'}`,
+        body: 'Clear them today so your plan stays honest.',
+        action: 'Tasks',
+      });
+    }
+    if (openTasks.length > 0 && overdueTasks.length === 0) {
+      insights.push({
+        id: 'open-tasks',
+        tone: 'info',
+        title: `${openTasks.length} open task${openTasks.length === 1 ? '' : 's'}`,
+        body: 'Keep momentum — finish one next.',
+        action: 'Tasks',
+      });
+    }
+    if (wins > 0) {
+      insights.push({
+        id: 'month-wins',
+        tone: 'success',
+        title: `${wins} win${wins === 1 ? '' : 's'} this month`,
+        body: misses > 0 ? `${misses} missed — progress is still real.` : 'Strong consistency so far.',
+        action: 'TodayTab',
+      });
+    }
+    if (doingWell) {
+      insights.push({
+        id: 'doing-well',
+        tone: 'success',
+        title: `${doingWell} is going well`,
+        body: 'You are putting the most time here this month.',
+        action: 'PlanTab',
+      });
+    }
+    if (neglecting && neglecting !== doingWell) {
+      insights.push({
+        id: 'needs-attention',
+        tone: 'warning',
+        title: `${neglecting} needs attention`,
+        body: 'Little time logged here this month.',
+        action: 'PlanTab',
+      });
+    }
+
     return {
       weeklyCompletion: week.autoSummary,
       monthlyCompletion: month.autoSummary,
@@ -65,17 +137,15 @@ export class AnalyticsService {
         name: areaName.get(id) ?? 'Unknown',
         minutes,
       })),
-      doingWell: neglected.slice(-1)[0]?.name ?? null,
-      neglecting: neglected[0]?.name ?? null,
-      taskCompletion:
-        tasks.length === 0
-          ? 0
-          : Math.round((tasks.filter((task) => task.status === 'completed').length / tasks.length) * 100),
-      goalProgress:
-        goals.length === 0
-          ? 0
-          : Math.round(goals.reduce((sum, goal) => sum + goal.progress, 0) / goals.length),
+      doingWell,
+      neglecting,
+      taskCompletion,
+      goalProgress,
       activeHabits: habits.length,
+      openTasks: openTasks.length,
+      overdueTasks: overdueTasks.length,
+      goalsCount: goals.length,
+      insights,
     };
   }
 }

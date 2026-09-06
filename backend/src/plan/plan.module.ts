@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Activity, ActivitySchema } from '../activities/schemas/activity.schema.js';
+import { DayItem, DayItemSchema } from '../day-items/schemas/day-item.schema.js';
 import { Goal, GoalSchema } from '../goals/schemas/goal.schema.js';
 import { PersonalYearsModule } from '../personal-years/personal-years.module.js';
 import { Task, TaskSchema } from '../tasks/schemas/task.schema.js';
@@ -13,7 +13,7 @@ import { PlanService } from './plan.service.js';
     TodayModule,
     PersonalYearsModule,
     MongooseModule.forFeature([
-      { name: Activity.name, schema: ActivitySchema },
+      { name: DayItem.name, schema: DayItemSchema },
       { name: Task.name, schema: TaskSchema },
       { name: Goal.name, schema: GoalSchema },
     ]),

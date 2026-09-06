@@ -2,7 +2,7 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { api, apiUrl, useSession } from '../../api/client';
+import { api, useSession } from '../../api/client';
 import { flushOutbox } from '../../offline/outbox';
 import { Group, Row, Screen, ScreenHeader } from '../../components/ui';
 import { colors } from '../../theme';
@@ -16,7 +16,8 @@ export function ProfileScreen({ navigation }: { navigation: { navigate: (name: s
   });
   const profile = useQuery({
     queryKey: ['me'],
-    queryFn: () => api<{ name: string; email: string; timezone: string; googleAccount?: { connected: boolean } }>('/users/me'),
+    queryFn: () =>
+      api<{ name: string; email: string; timezone: string; googleAccount?: { connected: boolean } }>('/users/me'),
   });
 
   const name = profile.data?.name ?? user?.name ?? 'You';
@@ -37,7 +38,7 @@ export function ProfileScreen({ navigation }: { navigation: { navigate: (name: s
 
   return (
     <Screen>
-      <ScreenHeader title="Profile" subtitle="Account and reviews" />
+      <ScreenHeader title="Profile" subtitle="Account, reviews, and sync" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.identity}>
           <View style={styles.avatar}>
@@ -47,8 +48,7 @@ export function ProfileScreen({ navigation }: { navigation: { navigate: (name: s
           <Text style={styles.email}>{email}</Text>
         </View>
 
-        <Group label="Library">
-          <Row icon="book-outline" title="Notes" subtitle="Topic documents" onPress={() => navigation.navigate('Knowledge')} />
+        <Group label="Life log">
           <Row icon="create-outline" title="Journal" subtitle="Daily reflection" onPress={() => navigation.navigate('Journal')} />
           <Row
             icon="trophy-outline"
@@ -73,7 +73,7 @@ export function ProfileScreen({ navigation }: { navigation: { navigate: (name: s
               google.data?.connected
                 ? google.data.email ?? 'Connected'
                 : google.data?.configured
-                  ? 'Not connected'
+                  ? 'Tap to connect'
                   : 'Not configured on server'
             }
             onPress={() => {
@@ -89,7 +89,8 @@ export function ProfileScreen({ navigation }: { navigation: { navigate: (name: s
           <Row
             icon="sync-outline"
             title="Sync now"
-            subtitle="Flush offline activity"
+            subtitle="Save offline activity"
+            last
             onPress={async () => {
               const result = await flushOutbox();
               Alert.alert(
@@ -98,7 +99,6 @@ export function ProfileScreen({ navigation }: { navigation: { navigate: (name: s
               );
             }}
           />
-          <Row icon="server-outline" title="API" subtitle={apiUrl} last />
         </Group>
 
         <Group>

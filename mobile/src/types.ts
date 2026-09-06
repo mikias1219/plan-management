@@ -4,18 +4,18 @@ export interface AuthUser {
   name: string;
 }
 
-export interface TodayHabit {
+export type DayItemStatus = 'planned' | 'done' | 'missed';
+export type DayItemUnit = 'reps' | 'minutes' | 'count';
+
+export interface DayItem {
   id: string;
-  name: string;
-  lifeAreaId: string;
+  date: string;
+  title: string;
   target: number;
-  unit: string;
-  current: number;
-  complete: boolean;
-  missed: boolean;
-  captureStyle: 'complete' | 'duration' | 'learning';
-  actionLabel: string;
-  color?: string;
+  unit: DayItemUnit;
+  plannedTime?: string;
+  status: DayItemStatus;
+  note: string;
 }
 
 export interface TodayPayload {
@@ -31,14 +31,22 @@ export interface TodayPayload {
     daysRemaining: number;
     percentComplete: number;
   } | null;
-  progress: { percent: number; completedHabits: number; totalHabits: number };
-  habits: TodayHabit[];
-  priorities: Array<{ id: string; title: string; priority: string; status: string }>;
+  progress: {
+    percent: number;
+    completed: number;
+    total: number;
+    planned: number;
+    missed: number;
+  };
+  items: DayItem[];
   tasks: Array<{ id: string; title: string; status: string; dueDate?: string }>;
   journal: { exists: boolean; id?: string };
 }
 
+export type FinancePeriod = 'day' | 'week' | 'month';
+
 export interface FinanceSummary {
+  period: FinancePeriod;
   month: string;
   from: string;
   to: string;
@@ -48,9 +56,13 @@ export interface FinanceSummary {
   budget: number;
   remaining: number | null;
   percentUsed: number;
+  monthExpense?: number;
   onTrack: boolean | null;
+  topCategory: { category: string; amount: number } | null;
   byCategory: Array<{ category: string; amount: number; percent: number }>;
+  byDay?: Array<{ date: string; income: number; expense: number; net: number }>;
   recent: FinanceTransaction[];
+  count?: number;
 }
 
 export interface FinanceTransaction {
@@ -63,5 +75,33 @@ export interface FinanceTransaction {
   currency: string;
 }
 
+export interface DashboardInsight {
+  id: string;
+  tone: 'info' | 'success' | 'warning' | 'danger';
+  title: string;
+  body: string;
+  action?: string;
+}
+
+export interface AnalyticsDashboard {
+  doingWell: string | null;
+  neglecting: string | null;
+  taskCompletion: number;
+  goalProgress: number;
+  activeHabits: number;
+  openTasks?: number;
+  overdueTasks?: number;
+  goalsCount?: number;
+  insights?: DashboardInsight[];
+  monthlyCompletion: { habitsCompleted: number; habitsMissed: number; knowledgeCreated?: number };
+  timeDistribution: Array<{ name: string; minutes: number }>;
+}
+
 export const todayDate = () => new Date().toISOString().slice(0, 10);
 export const currentMonth = () => new Date().toISOString().slice(0, 7);
+
+export function unitLabel(unit: DayItemUnit) {
+  if (unit === 'minutes') return 'min';
+  if (unit === 'count') return 'x';
+  return 'reps';
+}

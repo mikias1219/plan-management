@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { ScrollView, StyleSheet } from 'react-native';
 import { api } from '../../api/client';
-import { EmptyState, Group, Row, Screen } from '../../components/ui';
+import { EmptyState, Group, InsightCard, Row, Screen } from '../../components/ui';
 import { space } from '../../theme';
+import type { DayItem } from '../../types';
+import { unitLabel } from '../../types';
 
 export function PlanPeriodScreen({
   view,
@@ -18,14 +20,14 @@ export function PlanPeriodScreen({
         to?: string;
         date?: string;
         personalYear?: { currentDay: number; totalDays: number; percentComplete: number } | null;
-        habits?: Array<{ id: string; name: string; current: number; target: number; complete: boolean }>;
-        activities?: Array<{ id: string; date: string; title: string; durationMinutes: number }>;
+        progress?: { percent: number; completed: number; total: number };
+        items?: DayItem[];
         tasks?: Array<{ id: string; title: string; status: string }>;
         goals?: Array<{ id: string; title: string; progress: number }>;
       }>(`/plan?view=${view}`),
   });
   const data = query.data;
-  const empty = !data?.habits?.length && !data?.activities?.length && !data?.tasks?.length && !data?.goals?.length;
+  const empty = !data?.items?.length && !data?.tasks?.length && !data?.goals?.length;
 
   return (
     <Screen safe={false}>
@@ -41,16 +43,27 @@ export function PlanPeriodScreen({
           </Group>
         ) : null}
 
-        {data?.habits?.length ? (
-          <Group label="Habits">
-            {data.habits.map((habit, index) => (
+        {typeof data?.progress?.total === 'number' ? (
+          <InsightCard
+            icon="checkbox-outline"
+            title="Plan progress"
+            body={`${data.progress.completed} of ${data.progress.total} items done`}
+            progress={data.progress.percent}
+            value={`${data.progress.percent}%`}
+          />
+        ) : null}
+
+        {data?.items?.length ? (
+          <Group label="Day plan">
+            {data.items.map((item, index) => (
               <Row
-                key={habit.id}
-                icon={habit.complete ? 'checkmark-circle-outline' : 'ellipse-outline'}
-                tone={habit.complete ? 'success' : 'neutral'}
-                title={habit.name}
-                subtitle={habit.complete ? 'Done' : `${habit.current} / ${habit.target}`}
-                last={index === data.habits!.length - 1}
+                key={item.id}
+                icon={item.status === 'done' ? 'checkmark-circle-outline' : item.status === 'missed' ? 'close-circle-outline' : 'ellipse-outline'}
+                tone={item.status === 'done' ? 'success' : item.status === 'missed' ? 'danger' : 'neutral'}
+                title={item.title}
+                subtitle={`${item.target} ${unitLabel(item.unit)}${item.date ? ` · ${item.date}` : ''}`}
+                value={item.status}
+                last={index === data.items!.length - 1}
               />
             ))}
           </Group>
@@ -84,21 +97,7 @@ export function PlanPeriodScreen({
           </Group>
         ) : null}
 
-        {data?.activities?.length ? (
-          <Group label="Logged">
-            {data.activities.map((item, index) => (
-              <Row
-                key={item.id}
-                icon="time-outline"
-                title={item.title}
-                subtitle={`${item.date} · ${item.durationMinutes} min`}
-                last={index === data.activities!.length - 1}
-              />
-            ))}
-          </Group>
-        ) : null}
-
-        {empty ? <EmptyState title={`Nothing in this ${view} yet`} body="Record from Today or Quick add." /> : null}
+        {empty ? <EmptyState title={`Nothing in this ${view} yet`} body="Add plan items from Today." /> : null}
       </ScrollView>
     </Screen>
   );

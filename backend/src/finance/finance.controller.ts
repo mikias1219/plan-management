@@ -1,6 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import { CreateTransactionDto, MonthQueryDto, UpdateTransactionDto, UpsertBudgetDto } from './dto/finance.dto.js';
+import {
+  CreateTransactionDto,
+  FinanceListQueryDto,
+  FinanceSummaryQueryDto,
+  MonthQueryDto,
+  UpdateTransactionDto,
+  UpsertBudgetDto,
+} from './dto/finance.dto.js';
 import { FinanceService } from './finance.service.js';
 
 @Controller('finance')
@@ -13,8 +20,8 @@ export class FinanceController {
   }
 
   @Get('summary')
-  summary(@CurrentUser('userId') userId: string, @Query() query: MonthQueryDto) {
-    return this.finance.summary(userId, query.month);
+  summary(@CurrentUser('userId') userId: string, @Query() query: FinanceSummaryQueryDto) {
+    return this.finance.summary(userId, query);
   }
 
   @Get('budget')
@@ -28,8 +35,8 @@ export class FinanceController {
   }
 
   @Get('transactions')
-  list(@CurrentUser('userId') userId: string, @Query() query: MonthQueryDto) {
-    return this.finance.list(userId, query.month);
+  list(@CurrentUser('userId') userId: string, @Query() query: FinanceListQueryDto) {
+    return this.finance.list(userId, query);
   }
 
   @Post('transactions')

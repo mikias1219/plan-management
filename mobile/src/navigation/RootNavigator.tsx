@@ -7,6 +7,7 @@ import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 import { DashboardScreen } from '../screens/home/DashboardScreen';
 import { TodayScreen } from '../screens/today/TodayScreen';
+import { AddDayItemScreen } from '../screens/today/AddDayItemScreen';
 import { PlanScreen } from '../screens/plan/PlanScreen';
 import { YearSetupScreen } from '../screens/plan/YearSetupScreen';
 import { GoalsScreen, HabitsScreen, TasksScreen, AchievementsScreen } from '../screens/plan/ListScreens';
@@ -96,9 +97,9 @@ function MainTabs() {
         options={{ title: 'Money', tabBarIcon: tabIcon('wallet-outline', 'wallet') }}
       />
       <Tabs.Screen
-        name="ProfileTab"
-        component={ProfileScreen}
-        options={{ title: 'Profile', tabBarIcon: tabIcon('person-outline', 'person') }}
+        name="LearnTab"
+        component={KnowledgeHomeScreen}
+        options={{ title: 'Learn', tabBarIcon: tabIcon('book-outline', 'book') }}
       />
     </Tabs.Navigator>
   );
@@ -116,7 +117,8 @@ function AppStack() {
       }}
     >
       <Root.Screen name="Tabs" component={MainTabs} options={{ headerShown: false }} />
-      <Root.Screen name="Capture" component={CaptureScreen as never} options={{ title: 'Quick add', presentation: 'modal' }} />
+      <Root.Screen name="Capture" component={CaptureScreen as never} options={{ title: 'Add', presentation: 'modal' }} />
+      <Root.Screen name="AddDayItem" component={AddDayItemScreen as never} options={{ title: 'Plan item' }} />
       <Root.Screen name="AddTransaction" component={AddTransactionScreen as never} options={{ title: 'Add money' }} />
       <Root.Screen name="Budget" component={BudgetScreen} options={{ title: 'Budget' }} />
       <Root.Screen name="PlanDay" component={PlanDayScreen} options={{ title: 'Day' }} />
@@ -131,7 +133,7 @@ function AppStack() {
       <Root.Screen name="HabitDetail" component={HabitDetailScreen as never} options={{ title: 'Habit' }} />
       <Root.Screen name="Tasks" component={TasksScreen} options={{ title: 'Tasks' }} />
       <Root.Screen name="CreateTask" component={CreateTaskScreen} options={{ title: 'New task' }} />
-      <Root.Screen name="Knowledge" component={KnowledgeHomeScreen} options={{ title: 'Notes' }} />
+      <Root.Screen name="Knowledge" component={KnowledgeHomeScreen} options={{ title: 'Learn' }} />
       <Root.Screen name="KnowledgeArea" component={KnowledgeAreaScreen as never} options={{ title: 'Topic' }} />
       <Root.Screen name="KnowledgeEditor" component={KnowledgeEditorScreen as never} options={{ title: 'Editor' }} />
       <Root.Screen name="Journal" component={JournalScreen} options={{ title: 'Journal' }} />
@@ -140,6 +142,7 @@ function AppStack() {
       <Root.Screen name="WeeklyReview" component={WeeklyReviewScreen} options={{ title: 'Weekly review' }} />
       <Root.Screen name="MonthlyReview" component={MonthlyReviewScreen} options={{ title: 'Monthly review' }} />
       <Root.Screen name="YearlyReview" component={YearlyReviewScreen} options={{ title: 'Year review' }} />
+      <Root.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
       <Root.Screen name="Search" component={SearchScreen} options={{ title: 'Search' }} />
     </Root.Navigator>
   );

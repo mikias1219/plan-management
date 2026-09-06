@@ -1,18 +1,55 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, ScrollView, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api/client';
-import { ErrorBanner, Fab, Group, Row, Screen, ScreenHeader } from '../../components/ui';
-import { money, monthLabel } from '../../theme';
-import type { FinanceSummary } from '../../types';
-import { currentMonth } from '../../types';
+import { PeriodFilter } from '../../components/DateTimeFields';
+import {
+  ErrorBanner,
+  Fab,
+  Group,
+  InsightCard,
+  MetricTile,
+  Row,
+  Screen,
+  ScreenHeader,
+  SectionLabel,
+} from '../../components/ui';
+import { colors, money, monthLabel } from '../../theme';
+import type { FinancePeriod, FinanceSummary } from '../../types';
+import { todayDate } from '../../types';
+
+function periodLabel(period: FinancePeriod, from: string, to: string) {
+  if (period === 'day') {
+    return new Date(`${from}T00:00:00`).toLocaleDateString(undefined, {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+  if (period === 'week') {
+    const a = new Date(`${from}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const b = new Date(`${to}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return `${a} – ${b}`;
+  }
+  return monthLabel(from.slice(0, 7));
+}
 
 export function MoneyScreen({ navigation }: { navigation: { navigate: (name: string, params?: object) => void } }) {
-  const month = currentMonth();
+  const [period, setPeriod] = useState<FinancePeriod>('day');
+  const [date, setDate] = useState(todayDate());
   const queryClient = useQueryClient();
+  const month = date.slice(0, 7);
+
   const summary = useQuery({
-    queryKey: ['finance-summary', month],
-    queryFn: () => api<FinanceSummary>(`/finance/summary?month=${month}`),
+    queryKey: ['finance-summary', period, date],
+    queryFn: () =>
+      api<FinanceSummary>(
+        period === 'month'
+          ? `/finance/summary?period=month&month=${month}`
+          : `/finance/summary?period=${period}&date=${date}`,
+      ),
   });
+
   const data = summary.data;
   const over = data?.onTrack === false;
 
@@ -23,75 +60,78 @@ export function MoneyScreen({ navigation }: { navigation: { navigate: (name: str
 
   return (
     <Screen>
-      <ScreenHeader title="Money" subtitle={monthLabel(month)} />
+      <ScreenHeader title="Money" subtitle="Pick a day, week, or month" />
+      <PeriodFilter period={period} onPeriodChange={setPeriod} date={date} onDateChange={setDate} />
       {summary.isError ? (
         <ErrorBanner
           message={summary.error instanceof Error ? summary.error.message : 'Could not load money'}
           onRetry={() => summary.refetch()}
         />
       ) : null}
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Group label="This month">
+        <Text style={styles.range}>{data ? periodLabel(period, data.from, data.to) : '…'}</Text>
+
+        <InsightCard
+          icon="wallet-outline"
+          title="Spent"
+          body={
+            data?.budget
+              ? `${money(data.remaining ?? 0)} left of ${money(data.budget)} this month`
+              : 'Set a monthly budget to track progress'
+          }
+          value={money(data?.expense ?? 0)}
+          progress={data?.budget ? data.percentUsed : undefined}
+          tone={over ? 'danger' : 'info'}
+          onPress={() => navigation.navigate('Budget')}
+        />
+
+        <View style={styles.metrics}>
+          <MetricTile label="Income" value={money(data?.income ?? 0)} hint="In this period" />
+          <MetricTile label="Net" value={money(data?.net ?? 0)} hint={(data?.net ?? 0) >= 0 ? 'Ahead' : 'Behind'} />
+        </View>
+
+        <Group label="Actions">
           <Row
-            icon="arrow-down-circle-outline"
-            title="Spent"
-            subtitle={data?.budget ? `of ${money(data.budget)} budget` : 'No budget yet'}
-            value={money(data?.expense ?? 0)}
-            tone={over ? 'danger' : 'accent'}
+            icon="remove-circle-outline"
+            title="Add expense"
+            tone="danger"
+            onPress={() => navigation.navigate('AddTransaction', { type: 'expense', date })}
           />
-          <Row icon="arrow-up-circle-outline" title="Income" value={money(data?.income ?? 0)} tone="success" />
           <Row
-            icon="swap-vertical-outline"
-            title="Net"
-            value={money(data?.net ?? 0)}
-            tone={(data?.net ?? 0) < 0 ? 'danger' : 'success'}
+            icon="add-circle-outline"
+            title="Add income"
+            tone="success"
+            onPress={() => navigation.navigate('AddTransaction', { type: 'income', date })}
           />
           <Row
             icon="pie-chart-outline"
-            title="Budget"
-            subtitle={data?.budget ? (over ? 'Over cap' : `${money(data.remaining ?? 0)} remaining`) : 'Set a monthly cap'}
-            value={data?.budget ? `${data.percentUsed}%` : 'Off'}
+            title="Monthly budget"
+            subtitle={data?.budget ? money(data.budget) : 'Not set'}
             last
             onPress={() => navigation.navigate('Budget')}
           />
         </Group>
 
-        <Group label="Add">
-          <Row
-            icon="remove-circle-outline"
-            title="Expense"
-            subtitle="Food, transport, and the rest"
-            tone="danger"
-            onPress={() => navigation.navigate('AddTransaction', { type: 'expense' })}
-          />
-          <Row
-            icon="add-circle-outline"
-            title="Income"
-            subtitle="Salary, side, gifts"
-            tone="success"
-            last
-            onPress={() => navigation.navigate('AddTransaction', { type: 'income' })}
-          />
-        </Group>
-
         {data?.byCategory.length ? (
-          <Group label="Where it went">
-            {data.byCategory.map((row, index) => (
-              <Row
+          <>
+            <SectionLabel>Where it went</SectionLabel>
+            {data.byCategory.map((row) => (
+              <InsightCard
                 key={row.category}
                 icon="ellipse"
                 title={row.category}
-                subtitle={`${row.percent}% of spending`}
+                body={`${row.percent}% of spending`}
                 value={money(row.amount)}
-                last={index === data.byCategory.length - 1}
+                progress={row.percent}
               />
             ))}
-          </Group>
+          </>
         ) : null}
 
         <Group label="Recent">
           {!data?.recent.length ? (
-            <Row icon="receipt-outline" title="No transactions yet" subtitle="Keep cashflow here, not in habits" last />
+            <Row icon="receipt-outline" title="No transactions yet" subtitle="Add income or expense for this period" last />
           ) : (
             data.recent.map((item, index) => (
               <Row
@@ -113,11 +153,13 @@ export function MoneyScreen({ navigation }: { navigation: { navigate: (name: str
           )}
         </Group>
       </ScrollView>
-      <Fab onPress={() => navigation.navigate('AddTransaction', { type: 'expense' })} />
+      <Fab onPress={() => navigation.navigate('AddTransaction', { type: 'expense', date })} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 8, paddingBottom: 120, gap: 22 },
+  content: { paddingTop: 14, paddingBottom: 120, gap: 12 },
+  range: { color: colors.muted, fontSize: 14, fontWeight: '600' },
+  metrics: { flexDirection: 'row', gap: 10 },
 });

@@ -61,3 +61,10 @@ export type IncomeCategory = (typeof INCOME_CATEGORIES)[number];
 
 export const FINANCE_CATEGORIES = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES] as const;
 export type FinanceCategory = (typeof FINANCE_CATEGORIES)[number];
+
+export const DAY_ITEM_STATUSES = ['planned', 'done', 'missed'] as const;
+export type DayItemStatus = (typeof DAY_ITEM_STATUSES)[number];
+
+export const DAY_ITEM_UNITS = ['reps', 'minutes', 'count'] as const;
+export type DayItemUnit = (typeof DAY_ITEM_UNITS)[number];
+

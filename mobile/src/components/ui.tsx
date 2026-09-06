@@ -245,6 +245,116 @@ export function Fab({
   );
 }
 
+export function SegmentedControl({
+  options,
+  value,
+  onChange,
+}: {
+  options: Array<{ label: string; value: string }>;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <View style={styles.segment}>
+      {options.map((option) => {
+        const on = option.value === value;
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => onChange(option.value)}
+            style={[styles.segmentItem, on && styles.segmentItemOn]}
+          >
+            <Text style={[styles.segmentLabel, on && styles.segmentLabelOn]}>{option.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function InsightCard({
+  icon,
+  title,
+  body,
+  progress,
+  value,
+  tone = 'info',
+  onPress,
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  title: string;
+  body?: string;
+  progress?: number;
+  value?: string | number;
+  tone?: 'info' | 'success' | 'warning' | 'danger';
+  onPress?: () => void;
+}) {
+  const palette = {
+    info: { bg: colors.surface, accent: colors.accent, soft: colors.accentSoft },
+    success: { bg: colors.surface, accent: colors.success, soft: '#ECFDF5' },
+    warning: { bg: colors.surface, accent: colors.warning, soft: '#FFFBEB' },
+    danger: { bg: colors.surface, accent: colors.error, soft: '#FEF2F2' },
+  }[tone];
+
+  const content = (
+    <View style={[styles.insight, { borderColor: colors.border }]}>
+      <View style={styles.insightTop}>
+        {icon ? (
+          <View style={[styles.well, { backgroundColor: palette.soft }]}>
+            <Ionicons name={icon} size={18} color={palette.accent} />
+          </View>
+        ) : null}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.insightTitle}>{title}</Text>
+          {body ? <Text style={styles.insightBody}>{body}</Text> : null}
+        </View>
+        {value !== undefined ? <Text style={[styles.insightValue, { color: palette.accent }]}>{value}</Text> : null}
+        {onPress ? <Ionicons name="chevron-forward" size={18} color={colors.muted} /> : null}
+      </View>
+      {typeof progress === 'number' ? (
+        <ProgressBar value={progress} color={palette.accent} />
+      ) : null}
+    </View>
+  );
+
+  if (!onPress) {
+    return content;
+  }
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.92 }}>
+      {content}
+    </Pressable>
+  );
+}
+
+export function MetricTile({
+  label,
+  value,
+  hint,
+  onPress,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+  onPress?: () => void;
+}) {
+  const body = (
+    <View style={styles.metric}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue}>{value}</Text>
+      {hint ? <Text style={styles.metricHint}>{hint}</Text> : null}
+    </View>
+  );
+  if (!onPress) {
+    return <View style={{ flex: 1 }}>{body}</View>;
+  }
+  return (
+    <Pressable onPress={onPress} style={{ flex: 1 }}>
+      {body}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: 20, paddingTop: 8 },
   header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8, gap: 12 },
@@ -355,4 +465,45 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: colors.hairline,
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+  },
+  segmentItem: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  segmentItemOn: {
+    backgroundColor: colors.surface,
+  },
+  segmentLabel: { fontSize: 14, fontWeight: '600', color: colors.muted },
+  segmentLabelOn: { color: colors.ink },
+  insight: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderRadius: radius,
+    padding: 14,
+    gap: 12,
+  },
+  insightTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  insightTitle: { fontSize: 16, fontWeight: '700', color: colors.ink },
+  insightBody: { fontSize: 13, color: colors.muted, marginTop: 2, lineHeight: 18 },
+  insightValue: { fontSize: 18, fontWeight: '700' },
+  metric: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius,
+    padding: 14,
+    gap: 4,
+    minHeight: 88,
+  },
+  metricLabel: { fontSize: 12, fontWeight: '700', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
+  metricValue: { fontSize: 22, fontWeight: '700', color: colors.ink, letterSpacing: -0.4 },
+  metricHint: { fontSize: 12, color: colors.muted },
 });

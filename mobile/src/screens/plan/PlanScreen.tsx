@@ -21,21 +21,21 @@ export function PlanScreen({ navigation }: { navigation: { navigate: (name: stri
 
   return (
     <Screen>
-      <ScreenHeader title="Plan" subtitle="One thing at a time" />
+      <ScreenHeader title="Plan" subtitle="Goals, habits, and your year" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Group label="Time">
           <Row
             icon="flag-outline"
             title="Personal year"
-            subtitle={year ? `${year.daysRemaining} days left` : 'Set start and end dates'}
+            subtitle={year ? `${year.daysRemaining} days left` : 'Set start date'}
             value={year ? `${year.percentComplete}%` : undefined}
             onPress={() => navigation.navigate(year ? 'PlanYear' : 'YearSetup')}
           />
-          <Row icon="today-outline" title="This week" subtitle="Habits and tasks" onPress={() => navigation.navigate('PlanWeek')} />
+          <Row icon="today-outline" title="This week" subtitle="What you logged" onPress={() => navigation.navigate('PlanWeek')} />
           <Row
             icon="calendar-outline"
             title="This month"
-            subtitle="A wider look"
+            subtitle="Wider progress"
             last
             onPress={() => navigation.navigate('PlanMonth')}
           />
@@ -45,15 +45,15 @@ export function PlanScreen({ navigation }: { navigation: { navigate: (name: stri
           <Row
             icon="ribbon-outline"
             title="Goals"
-            subtitle="Annual down to weekly"
+            subtitle="What you are working toward"
             value={`${goalPct}%`}
             onPress={() => navigation.navigate('Goals')}
           />
-          <Row icon="repeat-outline" title="Habits" subtitle="Recurring behaviors" onPress={() => navigation.navigate('Habits')} />
+          <Row icon="repeat-outline" title="Habits" subtitle="Daily and weekly routines" onPress={() => navigation.navigate('Habits')} />
           <Row
             icon="checkbox-outline"
             title="Tasks"
-            subtitle="Specific actions"
+            subtitle="One-time actions"
             last
             onPress={() => navigation.navigate('Tasks')}
           />
