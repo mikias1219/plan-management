@@ -153,7 +153,7 @@ export function DashboardScreen({ navigation }: { navigation: { navigate: (name:
           <InsightCard
             icon="sparkles-outline"
             title="You're all set"
-            body="Complete a habit or add an expense to see live insights."
+            body="Add a plan item or an expense to see live insights."
             tone="info"
             onPress={() => navigation.navigate('TodayTab')}
           />

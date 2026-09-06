@@ -1,55 +1,103 @@
 import { useQuery } from '@tanstack/react-query';
-import { ScrollView, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { api } from '../../api/client';
-import { Group, Row, Screen, ScreenHeader } from '../../components/ui';
-import type { TodayPayload } from '../../types';
-import { todayDate } from '../../types';
+import { PeriodFilter } from '../../components/DateTimeFields';
+import {
+  EmptyState,
+  ErrorBanner,
+  Fab,
+  Group,
+  InsightCard,
+  Row,
+  Screen,
+  ScreenHeader,
+} from '../../components/ui';
+import { colors } from '../../theme';
+import type { DayItem } from '../../types';
+import { todayDate, unitLabel } from '../../types';
 
-export function PlanScreen({ navigation }: { navigation: { navigate: (name: string) => void } }) {
-  const today = useQuery({
-    queryKey: ['today', todayDate()],
-    queryFn: () => api<TodayPayload>(`/today?date=${todayDate()}`),
+type PlanView = 'day' | 'week' | 'month';
+
+type PlanPayload = {
+  view: string;
+  from?: string;
+  to?: string;
+  date?: string;
+  personalYear?: { currentDay: number; totalDays: number; percentComplete: number; daysRemaining: number } | null;
+  progress?: { percent: number; completed: number; total: number };
+  items?: DayItem[];
+  tasks?: Array<{ id: string; title: string; status: string }>;
+  goals?: Array<{ id: string; title: string; progress: number }>;
+};
+
+function rangeLabel(view: PlanView, from?: string, to?: string, date?: string) {
+  if (view === 'day' && date) {
+    return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+  if (from && to) {
+    const a = new Date(`${from}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const b = new Date(`${to}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return `${a} – ${b}`;
+  }
+  return '…';
+}
+
+export function PlanScreen({ navigation }: { navigation: { navigate: (name: string, params?: object) => void } }) {
+  const [period, setPeriod] = useState<PlanView>('week');
+  const [date, setDate] = useState(todayDate());
+
+  const plan = useQuery({
+    queryKey: ['plan', period, date],
+    queryFn: () => api<PlanPayload>(`/plan?view=${period}&date=${date}`),
   });
-  const year = today.data?.personalYear;
-  const goals = useQuery({
-    queryKey: ['goals'],
-    queryFn: () => api<Array<{ id: string; progress?: number }>>('/goals'),
-  });
-  const goalPct = goals.data?.length
-    ? Math.round(goals.data.reduce((sum, g) => sum + (g.progress ?? 0), 0) / goals.data.length)
-    : 0;
+  const data = plan.data;
+  const items = data?.items ?? [];
 
   return (
     <Screen>
-      <ScreenHeader title="Plan" subtitle="Goals, habits, and your year" />
+      <ScreenHeader title="Plan" subtitle="Day, week, or month — same list" />
+      <PeriodFilter period={period} onPeriodChange={setPeriod} date={date} onDateChange={setDate} />
+      {plan.isError ? (
+        <ErrorBanner
+          message={plan.error instanceof Error ? plan.error.message : 'Could not load plan'}
+          onRetry={() => plan.refetch()}
+        />
+      ) : null}
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Group label="Time">
+        <Text style={styles.range}>{rangeLabel(period, data?.from, data?.to, data?.date ?? date)}</Text>
+
+        <InsightCard
+          icon="checkbox-outline"
+          title="Plan progress"
+          body={`${data?.progress?.completed ?? 0} of ${data?.progress?.total ?? 0} items done`}
+          progress={data?.progress?.percent ?? 0}
+          value={`${data?.progress?.percent ?? 0}%`}
+        />
+
+        <Group label="Setup">
           <Row
             icon="flag-outline"
             title="Personal year"
-            subtitle={year ? `${year.daysRemaining} days left` : 'Set start date'}
-            value={year ? `${year.percentComplete}%` : undefined}
-            onPress={() => navigation.navigate(year ? 'PlanYear' : 'YearSetup')}
+            subtitle={
+              data?.personalYear
+                ? `${data.personalYear.daysRemaining} days left`
+                : 'Set your year start'
+            }
+            value={data?.personalYear ? `${data.personalYear.percentComplete}%` : undefined}
+            onPress={() => navigation.navigate(data?.personalYear ? 'PlanYear' : 'YearSetup')}
           />
-          <Row icon="today-outline" title="This week" subtitle="What you logged" onPress={() => navigation.navigate('PlanWeek')} />
-          <Row
-            icon="calendar-outline"
-            title="This month"
-            subtitle="Wider progress"
-            last
-            onPress={() => navigation.navigate('PlanMonth')}
-          />
-        </Group>
-
-        <Group label="Building">
           <Row
             icon="ribbon-outline"
             title="Goals"
-            subtitle="What you are working toward"
-            value={`${goalPct}%`}
+            subtitle="Longer targets"
             onPress={() => navigation.navigate('Goals')}
           />
-          <Row icon="repeat-outline" title="Habits" subtitle="Daily and weekly routines" onPress={() => navigation.navigate('Habits')} />
           <Row
             icon="checkbox-outline"
             title="Tasks"
@@ -58,11 +106,66 @@ export function PlanScreen({ navigation }: { navigation: { navigate: (name: stri
             onPress={() => navigation.navigate('Tasks')}
           />
         </Group>
+
+        {items.length ? (
+          <Group label="Planned items">
+            {items.map((item, index) => (
+              <Row
+                key={item.id}
+                icon={
+                  item.status === 'done'
+                    ? 'checkmark-circle-outline'
+                    : item.status === 'missed'
+                      ? 'close-circle-outline'
+                      : 'ellipse-outline'
+                }
+                tone={item.status === 'done' ? 'success' : item.status === 'missed' ? 'danger' : 'neutral'}
+                title={item.title}
+                subtitle={`${item.target} ${unitLabel(item.unit)}${period !== 'day' ? ` · ${item.date}` : ''}${
+                  item.plannedTime ? ` · ${item.plannedTime}` : ''
+                }`}
+                value={item.status}
+                last={index === items.length - 1}
+                onPress={() => navigation.navigate('TodayTab')}
+              />
+            ))}
+          </Group>
+        ) : (
+          <EmptyState
+            title={`Nothing in this ${period} yet`}
+            body="Add items on Today — like 30 push-ups — then check them off later."
+          />
+        )}
+
+        {(data?.goals?.length || data?.tasks?.length) && period !== 'day' ? (
+          <Group label="Also in range">
+            {(data.goals ?? []).slice(0, 3).map((goal) => (
+              <Row
+                key={goal.id}
+                icon="ribbon-outline"
+                title={goal.title}
+                value={`${goal.progress}%`}
+                onPress={() => navigation.navigate('GoalDetail', { id: goal.id })}
+              />
+            ))}
+            {(data.tasks ?? []).slice(0, 5).map((task, index, arr) => (
+              <Row
+                key={task.id}
+                icon="checkbox-outline"
+                title={task.title}
+                subtitle={task.status.replace(/_/g, ' ')}
+                last={index === arr.length - 1 && !(data.goals?.length)}
+              />
+            ))}
+          </Group>
+        ) : null}
       </ScrollView>
+      <Fab onPress={() => navigation.navigate('AddDayItem', { date })} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 8, paddingBottom: 40, gap: 22 },
+  content: { paddingTop: 14, paddingBottom: 120, gap: 12 },
+  range: { color: colors.muted, fontSize: 14, fontWeight: '600' },
 });

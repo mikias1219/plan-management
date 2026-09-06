@@ -40,6 +40,8 @@ export function AddDayItemScreen({
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['today'] });
+      await queryClient.invalidateQueries({ queryKey: ['plan'] });
+      await queryClient.invalidateQueries({ queryKey: ['analytics'] });
       navigation.goBack();
     },
     onError: (err) => setError(err instanceof Error ? err.message : 'Could not save'),

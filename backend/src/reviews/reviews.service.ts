@@ -4,7 +4,6 @@ import { Model } from 'mongoose';
 import {
   endOfMonth,
   endOfWeek,
-  isHabitDueOnDate,
   startOfMonth,
   startOfWeek,
   toDateString,
@@ -12,11 +11,9 @@ import {
 import { oid, ownedBy } from '../common/utils/oid.js';
 import { serialize } from '../common/utils/serialize.js';
 import { Achievement, AchievementDocument } from '../achievements/schemas/achievement.schema.js';
-import { Activity, ActivityDocument } from '../activities/schemas/activity.schema.js';
+import { DayItem, DayItemDocument } from '../day-items/schemas/day-item.schema.js';
 import { Goal, GoalDocument } from '../goals/schemas/goal.schema.js';
-import { Habit, HabitDocument } from '../habits/schemas/habit.schema.js';
 import { Knowledge, KnowledgeDocument } from '../knowledge/schemas/knowledge.schema.js';
-import { LifeArea, LifeAreaDocument } from '../life-areas/schemas/life-area.schema.js';
 import { PersonalYearsService } from '../personal-years/personal-years.service.js';
 import { Review, ReviewDocument } from './schemas/review.schema.js';
 import { Task, TaskDocument } from '../tasks/schemas/task.schema.js';
@@ -25,13 +22,11 @@ import { Task, TaskDocument } from '../tasks/schemas/task.schema.js';
 export class ReviewsService {
   constructor(
     @InjectModel(Review.name) private readonly reviews: Model<ReviewDocument>,
-    @InjectModel(Activity.name) private readonly activities: Model<ActivityDocument>,
-    @InjectModel(Habit.name) private readonly habits: Model<HabitDocument>,
+    @InjectModel(DayItem.name) private readonly dayItems: Model<DayItemDocument>,
     @InjectModel(Task.name) private readonly tasks: Model<TaskDocument>,
     @InjectModel(Goal.name) private readonly goals: Model<GoalDocument>,
     @InjectModel(Knowledge.name) private readonly knowledge: Model<KnowledgeDocument>,
     @InjectModel(Achievement.name) private readonly achievements: Model<AchievementDocument>,
-    @InjectModel(LifeArea.name) private readonly areas: Model<LifeAreaDocument>,
     private readonly years: PersonalYearsService,
   ) {}
 
@@ -89,49 +84,45 @@ export class ReviewsService {
 
   async computeSummary(userId: string, from: string, to: string) {
     const owner = ownedBy(userId);
-    const [activities, habits, tasks, goals, knowledge, achievements, areas] = await Promise.all([
-      this.activities.find({ userId: owner, date: { $gte: from, $lte: to } }).exec(),
-      this.habits.find({ userId: owner, active: true }).exec(),
+    const [items, tasks, goals, knowledge, achievements] = await Promise.all([
+      this.dayItems.find({ userId: owner, date: { $gte: from, $lte: to } }).exec(),
       this.tasks.find({ userId: owner }).exec(),
       this.goals.find({ userId: owner }).exec(),
-      this.knowledge.find({ userId: owner, createdAt: { $gte: new Date(from), $lte: new Date(`${to}T23:59:59Z`) } }).exec(),
+      this.knowledge
+        .find({ userId: owner, createdAt: { $gte: new Date(from), $lte: new Date(`${to}T23:59:59Z`) } })
+        .exec(),
       this.achievements.find({ userId: owner, date: { $gte: from, $lte: to } }).exec(),
-      this.areas.find({ userId: owner }).exec(),
     ]);
 
-    const completedActivities = activities.filter((item) => item.status === 'completed' || item.status === 'partial');
-    const missed = activities.filter((item) => item.status === 'missed');
-    const timeByArea: Record<string, number> = {};
-    for (const item of activities) {
-      const key = String(item.lifeAreaId);
-      timeByArea[key] = (timeByArea[key] ?? 0) + (item.durationMinutes || 0);
+    const done = items.filter((item) => item.status === 'done');
+    const missed = items.filter((item) => item.status === 'missed');
+    const planned = items.filter((item) => item.status === 'planned');
+    const minutesByTitle: Record<string, number> = {};
+    for (const item of done) {
+      if (item.unit === 'minutes') {
+        minutesByTitle[item.title] = (minutesByTitle[item.title] ?? 0) + item.target;
+      }
     }
 
-    const areaName = new Map(areas.map((area) => [String(area._id), area.name]));
-    const timeDistribution = Object.entries(timeByArea)
-      .map(([id, minutes]) => ({ lifeAreaId: id, name: areaName.get(id) ?? 'Unknown', minutes }))
+    const timeDistribution = Object.entries(minutesByTitle)
+      .map(([name, minutes]) => ({ lifeAreaId: name, name, minutes }))
       .sort((a, b) => b.minutes - a.minutes);
 
-    const strongest = timeDistribution[0]?.name ?? null;
-    const weakest = timeDistribution.length ? timeDistribution[timeDistribution.length - 1].name : null;
-
-    const dueCount = habits.filter((habit) =>
-      isHabitDueOnDate({ frequency: habit.frequency, selectedDays: habit.selectedDays, date: from }),
-    ).length;
-
     return {
-      habitsCompleted: completedActivities.length,
+      habitsCompleted: done.length,
       habitsMissed: missed.length,
-      dueHabitsSample: dueCount,
+      itemsPlanned: planned.length,
+      itemsTotal: items.length,
+      dueHabitsSample: items.length,
       tasksCompleted: tasks.filter((task) => task.status === 'completed').length,
       goalsInProgress: goals.filter((goal) => goal.status === 'in_progress').length,
       goalsCompleted: goals.filter((goal) => goal.status === 'completed').length,
       timeSpentByArea: timeDistribution,
-      activitiesCompleted: completedActivities.length,
+      activitiesCompleted: done.length,
       knowledgeCreated: knowledge.length,
       achievements: achievements.map((item) => ({ id: String(item._id), title: item.title, date: item.date })),
-      strongestArea: strongest,
-      weakestArea: weakest,
+      strongestArea: timeDistribution[0]?.name ?? null,
+      weakestArea: timeDistribution.length ? timeDistribution[timeDistribution.length - 1].name : null,
     };
   }
 }

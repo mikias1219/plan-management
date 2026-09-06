@@ -31,7 +31,7 @@ export function ReviewScreen({ type }: { type: 'weekly' | 'monthly' | 'yearly' }
     <Screen safe={false}>
       <ScrollView contentContainerStyle={styles.content}>
         <Group label="This period">
-          <Row title="Wins" value={summary?.habitsCompleted ?? 0} tone="success" />
+          <Row title="Done" value={summary?.habitsCompleted ?? 0} tone="success" />
           <Row title="Missed" value={summary?.habitsMissed ?? 0} tone="danger" />
           <Row title="Tasks completed" value={summary?.tasksCompleted ?? 0} />
           <Row title="Notes created" value={summary?.knowledgeCreated ?? 0} last />
